@@ -1,5 +1,6 @@
 import platform
 import autobook
+import os, sys
 
 class Chapter(object):
 	"""docstring for Chapter"""
@@ -31,7 +32,7 @@ def add_includes(book, base_tex_path):
 	base_tex = open(base_tex_path, 'r')
 	base_tex_text = base_tex.read()
 	base_tex.close()
-	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{0}}}".format(subchapter.md_name)
+	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{\"{0}\"}}}}".format(subchapter.md_name)
 														 for subchapter in chapter.sub_chapters]
 														 for chapter in book], [])))
 
@@ -76,7 +77,7 @@ def main():
 		# SubChapter("Implementing a barrier", "Synchronization, Part 6: Implementing a barrier"),
 		SubChapter("The Reader Writer Problem", "Synchronization, Part 7: The Reader Writer Problem"),
 		SubChapter("Ring Buffer Example", "Synchronization, Part 8: Ring Buffer Example"),
-		SubChapter("The Reader Writer Problem (part 2)", "Synchronization, Part 9: The Reader Writer Problem (part 2)")
+		# SubChapter("The Reader Writer Problem (part 2)", "Synchronization, Part 9: The Reader Writer Problem (part 2)")
 	)
 	
 	chapter6 = Chapter("Deadlock", book)
@@ -85,48 +86,48 @@ def main():
 		SubChapter("Deadlock Conditions", "Deadlock, Part 2: Deadlock Conditions")
 	)
 
-	chapter7 = Chapter("Virtual Memory", book)
-	chapter7.add_subchapters(
-		SubChapter("Introduction to Virtual Memory", "Virtual Memory, Part 1: Introduction to Virtual Memory")
-	)
+	# chapter7 = Chapter("Virtual Memory", book)
+	# chapter7.add_subchapters(
+	# 	# SubChapter("Introduction to Virtual Memory", "Virtual Memory, Part 1: Introduction to Virtual Memory")
+	# )
 
-	chapter8 = Chapter("Pipes", book)
-	chapter8.add_subchapters(
-		SubChapter("Introduction to pipes", "Pipes, Part 1: Introduction to pipes"),
-		SubChapter("Pipe programming secrets", "Pipes, Part 2: Pipe programming secrets")
-	)
+	# chapter8 = Chapter("Pipes", book)
+	# chapter8.add_subchapters(
+	# 	# SubChapter("Introduction to pipes", "Pipes, Part 1: Introduction to pipes"),
+	# 	SubChapter("Pipe programming secrets", "Pipes, Part 2: Pipe programming secrets")
+	# )
 
-	chapter9 = Chapter("Files", book)
-	chapter9.add_subchapters(
-		SubChapter("Working with files", "Files, Part 1: Working with files")
-	)
+	# chapter9 = Chapter("Files", book)
+	# chapter9.add_subchapters(
+	# 	SubChapter("Working with files", "Files, Part 1: Working with files")
+	# )
 
-	chapter10 = Chapter("POSIX", book)
-	chapter10.add_subchapters(
-		SubChapter("Error handling", "POSIX Error handling")
-	)
+	# chapter10 = Chapter("POSIX", book)
+	# chapter10.add_subchapters(
+	# 	SubChapter("Error handling", "POSIX Error handling")
+	# )
 
-	chapter11 = Chapter("Networking", book)
-	chapter11.add_subchapters(
-		SubChapter("Introduction", "Networking, Part 1: Introduction"),
-		SubChapter("Using getaddrinfo", "Networking, Part 2: Using getaddrinfo"),
-		SubChapter("Building a simple TCP Client", "Networking, Part 3: Building a simple TCP Client"),
-		SubChapter("Building a simple TCP Server", "Networking, Part 4: Building a simple TCP Server"),
-		SubChapter("Reusing ports", "Networking, Part 5: Reusing ports"),
-		SubChapter("Creating a UDP server", "Networking, Part 6: Creating a UDP server")
-	)
+	# chapter11 = Chapter("Networking", book)
+	# chapter11.add_subchapters(
+	# 	SubChapter("Introduction", "Networking, Part 1: Introduction"),
+	# 	SubChapter("Using getaddrinfo", "Networking, Part 2: Using getaddrinfo"),
+	# 	subchapter("Building a simple TCP Client", "Networking, Part 3: Building a simple TCP Client"),
+	# 	SubChapter("Building a simple TCP Server", "Networking, Part 4: Building a simple TCP Server"),
+	# 	SubChapter("Reusing ports", "Networking, Part 5: Reusing ports"),
+	# 	SubChapter("Creating a UDP server", "Networking, Part 6: Creating a UDP server")
+	# )
 
-	chapter12 = Chapter("File System", book)
-	chapter12.add_subchapters(
-		SubChapter("Introduction", "File System, Part 1: Introduction"),
-		SubChapter("Files are inodes (everything else is just data...)", "File System, Part 2: Files are inodes (everything else is just data...)"),
-		SubChapter("Permissions", "File System, Part 3: Permissions"),
-		SubChapter("Working with directories", "File System, Part 4: Working with directories"),
-		SubChapter("Virtual file systems", "File System, Part 5: Virtual file systems"),
-		SubChapter("Memory mapped files and Shared memory", "File System, Part 6: Memory mapped files and Shared memory"),
-		SubChapter("Scalable and Reliable Filesystems", "File System, Part 7: Scalable and Reliable Filesystems"),
-		SubChapter("Disk blocks example", "File System, Part 8: Disk blocks example")
-	)
+	# chapter12 = Chapter("File System", book)
+	# chapter12.add_subchapters(
+	# 	SubChapter("Introduction", "File System, Part 1: Introduction"),
+	# 	SubChapter("Files are inodes (everything else is just data...)", "File System, Part 2: Files are inodes (everything else is just data...)"),
+	# 	SubChapter("Permissions", "File System, Part 3: Permissions"),
+	# 	SubChapter("Working with directories", "File System, Part 4: Working with directories"),
+	# 	SubChapter("Virtual file systems", "File System, Part 5: Virtual file systems"),
+	# 	SubChapter("Memory mapped files and Shared memory", "File System, Part 6: Memory mapped files and Shared memory"),
+	# 	SubChapter("Scalable and Reliable Filesystems", "File System, Part 7: Scalable and Reliable Filesystems"),
+	# 	SubChapter("Disk blocks example", "File System, Part 8: Disk blocks example")
+	# )
 
 	for chapter in book:
 		print chapter.chapter_name
