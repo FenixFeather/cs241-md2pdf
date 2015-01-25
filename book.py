@@ -6,7 +6,7 @@ class Chapter(object):
 		super(Chapter, self).__init__()
 		self._chapter_name = chapter_name
 		self.sub_chapters = []
-        self.windows = windows if windows is not None else platform.system=="Windows"
+        self.windows = windows if windows is not None else platform.system() == "Windows"
 		book.append(self)
         
 	def add_subchapters(self, *args):
@@ -24,7 +24,7 @@ class SubChapter(Chapter):
     def __init__(self, sub_chapter_name, md_name, windows=None):
         self._sub_chapter_name = sub_chapter_name
         self.md_name = md_name
-        self.windows = windows if windows is not None else platform.system=="Windows"
+        self.windows = windows if windows is not None else platform.system() == "Windows"
 
     @property
     def sub_chapter_name(self):
