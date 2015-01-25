@@ -72,6 +72,6 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	process_book(book)
+	process_book(book, "./", "./tex_out/")
 
 main()
