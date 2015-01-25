@@ -1,0 +1,121 @@
+\documentclass[]{book}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\NormalTok}[1]{{#1}}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={},
+            pdftitle={},
+            colorlinks=false,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+% Make links footnotes instead of hotlinks:
+\renewcommand{\href}[2]{#2\footnote{\url{#1}}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+\date{}
+
+\begin{document}
+
+\include{{C Programming, Part 1: Introduction}}
+\include{{C Programming, Part 2: Text Input And Output}}
+\include{{C Programming, Part 3: Common Gotchas}}
+\include{{C Programming, Part 4: Debugging}}
+\include{{Forking, Part 1: Introduction}}
+\include{{Forking, Part 2: Fork, Exec, Wait Kill}}
+\include{{Memory, Part 1: Heap Memory Introduction}}
+\include{{Memory, Part 2: Implementing a Memory Allocator}}
+\include{{Memory, Part 3: Smashing the Stack Example}}
+\include{{Pthreads, Part 1: Introduction}}
+\include{{Pthreads, Part 2: Usage in Practice}}
+\include{{Synchronization, Part 1: Mutex Locks}}
+\include{{Synchronization, Part 2: Counting Semaphores}}
+\include{{Synchronization, Part 3: Working with Mutexes And Semaphores}}
+\include{{Synchronization, Part 4: The Critical Section Problem}}
+\include{{Synchronization, Part 5: Condition Variables}}
+\include{{Synchronization, Part 6: Implementing a barrier}}
+\include{{Synchronization, Part 7: The Reader Writer Problem}}
+\include{{Synchronization, Part 8: Ring Buffer Example}}
+\include{{Synchronization, Part 9: The Reader Writer Problem (part 2)}}
+\include{{Deadlock, Part 1: Resource Allocation Graph}}
+\include{{Deadlock, Part 2: Deadlock Conditions}}
+\include{{Virtual Memory, Part 1: Introduction to Virtual Memory}}
+\include{{Pipes, Part 1: Introduction to pipes}}
+\include{{Pipes, Part 2: Pipe programming secrets}}
+\include{{Files, Part 1: Working with files}}
+\include{{POSIX, Part 1: Error handling}}
+\include{{Networking, Part 1: Introduction}}
+\include{{Networking, Part 2: Using getaddrinfo}}
+\include{{Networking, Part 3: Building a simple TCP Client}}
+\include{{Networking, Part 4: Building a simple TCP Server}}
+\include{{Networking, Part 5: Reusing ports}}
+\include{{Networking, Part 6: Creating a UDP server}}
+\include{{Scheduling, Part 1: Scheduling Processes}}
+\include{{File System, Part 1: Introduction}}
+\include{{File System, Part 2: Files are inodes (everything else is just data...)}}
+\include{{File System, Part 3: Permissions}}
+\include{{File System, Part 4: Working with directories}}
+\include{{File System, Part 5: Virtual file systems}}
+\include{{File System, Part 6: Memory mapped files and Shared memory}}
+\include{{File System, Part 7: Scalable and Reliable Filesystems}}
+\include{{File System, Part 8: Disk blocks example}}
+\include{{Signals, Part 2: Pending Signals and Signal Masks}}
+\include{{Signals, Part 3: Raising signals}}
+\include{{Signals, Part 4: Sigaction}}
+
+\end{document}

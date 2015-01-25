@@ -1,40 +1,6 @@
 import platform
 import autobook
 
-class Chapter(object):
-	"""docstring for Chapter"""
-	def __init__(self, chapter_name, book, windows=None):
-		super(Chapter, self).__init__()
-		self.chapter_name = chapter_name
-		self.sub_chapters = []
-		book.append(self)
-		
-	def add_subchapters(self, *args):
-		for arg in args:
-			self.sub_chapters.append(arg)
-
-class SubChapter(Chapter):
-	def __init__(self, sub_chapter_name, md_name, windows=None):
-		self.sub_chapter_name = sub_chapter_name
-		self._md_name = md_name
-		self.windows = windows if windows is not None else platform.system() == "Windows"
-
-	@property
-	def md_name(self):
-		if self.windows:
-			return self._md_name.replace(":", "")
-		else:
-			return self._md_name
-
-def add_includes(book, base_tex_path):
-	"""Add the includes to the base tex file based on the tex files in base.tex."""
-	base_tex = open(base_tex_path, 'r')
-	base_tex_text = base_tex.read()
-	base_tex.close()
-	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{0}}}".format(subchapter.md_name)
-														 for subchapter in chapter.sub_chapters]
-														 for chapter in book], [])))
-
 def main():
 
 	book = []

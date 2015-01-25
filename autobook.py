@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from bs4 import BeautifulSoup,SoupStrainer
 import urllib2
 import re
@@ -37,6 +39,14 @@ def clone_wiki(url):
 	for file in files:
 		print file,file.replace("-"," ") 
 		os.rename(file, file.replace("-"," "))
+def add_includes(book, base_tex_path):
+	"""Add the includes to the base tex file based on the tex files in base.tex."""
+	base_tex = open(base_tex_path, 'r')
+	base_tex_text = base_tex.read()
+	base_tex.close()
+	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{{0}}}}}".format(subchapter.md_name)
+														 for subchapter in chapter.sub_chapters]
+														 for chapter in book], [])))
 def process_book(book, src_dir, out_dir):
 
 	for chapter in book:
@@ -101,8 +111,20 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
+	print "Processing book"
 	process_book(book, "SystemProgramming.wiki/", "tex_source/")
     
+	print "Adding includes"
+	base_modified = open("./tex_source/base.tex", 'w')
+
+	print add_includes(book, "base.tex")
+
+	base_modified.write(add_includes(book, "base.tex"))
+
+	base_modified.close()
+
+	# print "Compiling"
+	# os.system("pdflatex ./tex_source/base.tex")
 if __name__ == '__main__':
     main()
 
