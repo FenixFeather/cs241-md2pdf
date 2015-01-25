@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup,SoupStrainer
 import urllib2
 import re
 import os, sys
+import platform
 
 
 class Chapter(object):
@@ -16,10 +17,17 @@ class Chapter(object):
 			self.sub_chapters.append(arg)
 
 class SubChapter(Chapter):
-	def __init__(self, sub_chapter_name, md_name):
+	def __init__(self, sub_chapter_name, md_name, windows=None):
 		self.sub_chapter_name = sub_chapter_name
-		self.md_name = md_name
-
+		self._md_name = md_name
+		self.windows = windows if windows is not None else platform.system() == "Windows"
+		
+	@property
+	def md_name(self):
+		if self.windows:
+			return self._md_name.replace(":", "")
+		else:
+			return self._md_name
 
 def process_book(book, src_dir, out_dir):
 
@@ -87,6 +95,8 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	process_book(book, "./", "./tex_out/")
+	process_book(book, "./", "./tex_source/")
+    
+if __name__ == '__main__':
+    main()
 
-main()
