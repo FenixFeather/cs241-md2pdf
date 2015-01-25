@@ -39,8 +39,6 @@ def process_book(book, src_dir, out_dir):
 			tex_file.close()
 
 
-
-
 def main():
 	response = urllib2.urlopen("https://github.com/angrave/SystemProgramming/wiki")
 	html = response.read()
@@ -74,6 +72,6 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	run(book)
+	process_book(book)
 
 main()
