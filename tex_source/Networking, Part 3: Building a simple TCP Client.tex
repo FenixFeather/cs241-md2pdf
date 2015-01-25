@@ -1,0 +1,96 @@
+\subsection{Complete Simple TCP Client
+Example}\label{complete-simple-tcp-client-example}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <stdlib.h>}
+\OtherTok{#include <string.h>}
+\OtherTok{#include <sys/types.h>}
+\OtherTok{#include <sys/socket.h>}
+\OtherTok{#include <netdb.h>}
+\OtherTok{#include <unistd.h>}
+
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char} \NormalTok{**argv)}
+\NormalTok{\{}
+    \DataTypeTok{int} \NormalTok{s;}
+    \DataTypeTok{int} \NormalTok{sock_fd = socket(AF_INET, SOCK_STREAM, }\DecValTok{0}\NormalTok{);}
+
+    \KeywordTok{struct} \NormalTok{addrinfo hints, *result;}
+    \NormalTok{memset(&hints, }\DecValTok{0}\NormalTok{, }\KeywordTok{sizeof}\NormalTok{(}\KeywordTok{struct} \NormalTok{addrinfo));}
+    \NormalTok{hints.ai_family = AF_INET; }\CommentTok{/* IPv4 only */}
+    \NormalTok{hints.ai_socktype = SOCK_STREAM; }\CommentTok{/* TCP */}
+
+    \NormalTok{s = getaddrinfo(}\StringTok{"www.illinois.edu"}\NormalTok{, }\StringTok{"80"}\NormalTok{, &hints, &result);}
+    \KeywordTok{if} \NormalTok{(s != }\DecValTok{0}\NormalTok{) \{}
+            \NormalTok{fprintf(stderr, }\StringTok{"getaddrinfo: %s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, gai_strerror(s));}
+            \NormalTok{exit(}\DecValTok{1}\NormalTok{);}
+    \NormalTok{\}}
+
+    \NormalTok{connect(sock_fd, result->ai_addr, result->ai_addrlen);}
+
+    \DataTypeTok{char} \NormalTok{*buffer = }\StringTok{"GET / HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{"}\NormalTok{;}
+    \NormalTok{printf(}\StringTok{"SENDING: %s"}\NormalTok{, buffer);}
+    \NormalTok{printf(}\StringTok{"===}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{);}
+    \NormalTok{write(sock_fd, buffer, strlen(buffer));}
+
+
+    \DataTypeTok{char} \NormalTok{resp[}\DecValTok{1000}\NormalTok{];}
+    \DataTypeTok{int} \NormalTok{len = read(sock_fd, resp, }\DecValTok{999}\NormalTok{);}
+    \NormalTok{resp[len] = '\textbackslash{}}\DecValTok{0}\NormalTok{';}
+    \NormalTok{printf(}\StringTok{"%s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, resp);}
+
+    \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Example output:
+
+\begin{verbatim}
+SENDING: GET / HTTP/1.0
+
+===
+HTTP/1.1 200 OK
+Date: Mon, 27 Oct 2014 19:19:05 GMT
+Server: Apache/2.2.15 (Red Hat) mod_ssl/2.2.15 OpenSSL/1.0.1e-fips mod_jk/1.2.32
+Last-Modified: Fri, 03 Feb 2012 16:51:10 GMT
+ETag: "401b0-49-4b8121ea69b80"
+Accept-Ranges: bytes
+Content-Length: 73
+Connection: close
+Content-Type: text/html
+
+Provided by Web Services at Public Affairs at the University of Illinois
+\end{verbatim}
+
+\subsection{Comment on HTTP request and
+response}\label{comment-on-http-request-and-response}
+
+The example above demonstrates a request to the server using Hypertext
+Transfer Protocol.\\A web page (or other resources) are requested using
+the following request:
+
+\begin{verbatim}
+GET / HTTP/1.0
+\end{verbatim}
+
+There are four parts (the method e.g.~GET,POST,\ldots{}); the resource
+(e.g. / /index.html /image.png); the proctocol ``HTTP/1.0'' and two new
+lines
+(\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n)
+
+The server's first response line describes the HTTP version used and
+whether the request is successful using a 3 digit response code:
+
+\begin{verbatim}
+HTTP/1.1 200 OK
+\end{verbatim}
+
+If the client had requested a non existing file, e.g.
+\texttt{GET\ /nosuchfile.html\ HTTP/1.0}\\Then the first line includes
+the response code is the well-known \texttt{404} response code:
+
+\begin{verbatim}
+HTTP/1.1 404 Not Found
+\end{verbatim}

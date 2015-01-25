@@ -1,0 +1,53 @@
+Each thread uses a stack memory. The stack `grows downwards' - if a
+function calls another function, then the stack is extended to smaller
+memory addresses.\\Stack memory includes non-static automatic (temporary
+)variables, parameter values and the return address.\\If a buffer is too
+small some data (e.g.~input values from the user), then there is a real
+possibility that other stack variables and even the return address will
+be overwritten.\\The precise layout of the stack's contents and order of
+the automatic variables is architecture and compiler dependent. However
+with a little investigative work we can learn how to deliberately smash
+the stack for a particular architecture.
+
+The example below demonstrates how the return address is stored on the
+stack. For a particular 32 bit architecture {[}{[}Live Linux
+Machine\textbar{}\url{http://angrave.github.io/sys/}{]}{]}, we determine
+that the return address is stored at an address two pointers (8 bytes)
+above the address of the automatic variable. The code deliberately
+changes the stack value so that when the input function returns, rather
+than continuing on inside the main method, it jumps to the exploit
+function instead.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Overwrites the return address on the following machine:}
+\CommentTok{// http://angrave.github.io/sys/}
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <stdlib.h>}
+\OtherTok{#include <unistd.h>}
+
+\DataTypeTok{void} \NormalTok{breakout() \{}
+    \NormalTok{puts(}\StringTok{"Welcome. Have a shell..."}\NormalTok{);}
+    \NormalTok{system(}\StringTok{"/bin/sh"}\NormalTok{);}
+\NormalTok{\}}
+\DataTypeTok{void} \NormalTok{input() \{}
+  \DataTypeTok{void} \NormalTok{*p;}
+  \NormalTok{printf(}\StringTok{"Address of stack variable: %p}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, &p);}
+  \NormalTok{printf(}\StringTok{"Something that looks like a return address on stack: %p}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, *((&p)+}\DecValTok{2}\NormalTok{));}
+  \CommentTok{// Let's change it to point to the start of our sneaky function.}
+  \NormalTok{*((&p)+}\DecValTok{2}\NormalTok{) = breakout;}
+\NormalTok{\}}
+\DataTypeTok{int} \NormalTok{main() \{}
+    \NormalTok{printf(}\StringTok{"main() code starts at %p}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{,main);}
+    
+    \NormalTok{input();}
+    \KeywordTok{while} \NormalTok{(}\DecValTok{1}\NormalTok{) \{}
+        \NormalTok{puts(}\StringTok{"Hello"}\NormalTok{);}
+        \NormalTok{sleep(}\DecValTok{1}\NormalTok{);}
+    \NormalTok{\}}
+
+    \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+

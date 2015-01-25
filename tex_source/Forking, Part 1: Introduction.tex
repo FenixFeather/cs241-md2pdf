@@ -1,0 +1,286 @@
+\chapter{Forking}d of warning}\label{a-word-of-warning}
+
+Process forking is a very powerful (and very dangerous) tool. If you
+mess up and cause a fork bomb (explained later on this page),
+\textbf{you can bring down the entire system}. To reduce the chances of
+this, limit your maximum number of processes to a small number e.g\\ 40
+by typing ``ulimit -u 40'' into a command line.
+
+When testing fork() code, ensure that you have either root and/or
+physical access to the machine involved. If you must work on fork ()
+code remotely, remember that \textbf{kill -9 -1} will save you in the
+event of an emergency.
+
+TL;DR: Fork can be \textbf{extremely} dangerous if you aren't prepared
+for it. \textbf{You have been warned.}
+
+\subsection{What does fork do?}\label{what-does-fork-do}
+
+The \texttt{fork} system call clones the current process to create a new
+process. It creates a new process (the child process) by duplicating the
+state of the existing process with a few minor differences (discussed
+below). The child process does not start from main. Instead it returns
+from \texttt{fork()} just as the parent process does.
+
+\subsection{\texorpdfstring{What is the simplest \texttt{fork()}
+example?}{What is the simplest fork() example?}}\label{what-is-the-simplest-fork-example}
+
+Here's a very simple example\ldots{}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{printf(}\StringTok{"I'm printed once!}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{);}
+\NormalTok{fork();}
+\CommentTok{// Now there are two processes running}
+\CommentTok{// and each process will print out the next line.}
+\NormalTok{printf(}\StringTok{"You see this line twice!}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{);}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Why does this example print 42
+twice?}\label{why-does-this-example-print-42-twice}
+
+The following program prints out 42 twice - but the \texttt{fork()} is
+after the \texttt{printf}!? Why?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <unistd.h> }\CommentTok{/*fork declared here*/}
+\OtherTok{#include <stdio.h> }\CommentTok{/* printf declared here*/}
+\DataTypeTok{int} \NormalTok{main() \{}
+   \DataTypeTok{int} \NormalTok{answer = }\DecValTok{84} \NormalTok{>> }\DecValTok{1}\NormalTok{;}
+   \NormalTok{printf(}\StringTok{"Answer: %d"}\NormalTok{, answer);}
+   \NormalTok{fork();}
+   \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{printf} line \emph{is} executed only once however notice
+that the printed contents is not flushed to standard out (there's no
+newline printed, we didn't call \texttt{fflush}, or change the buffering
+mode).\\The output text is therefore in still in process memory waiting
+to be sent.\\When \texttt{fork()} is executed the entire process memory
+is duplicated including the buffer. Thus the child process starts with a
+non-empty output buffer which will be flushed when the program exits.
+
+\subsection{How do you write code that is different for the parent and
+child
+process?}\label{how-do-you-write-code-that-is-different-for-the-parent-and-child-process}
+
+Check the return value of \texttt{fork()}. Return value -1= failed; 0=
+in child process; positive = in parent process (and the return value is
+the child process id). Here's one way to remember which is which:
+
+The child process can find its parent - the original process that was
+duplicated - by calling getppid() - so does not need any additional
+return information from \texttt{fork()}. The parent process however can
+only find out the id of the new child process from the return value of
+\texttt{fork}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pid_t id = fork();}
+\KeywordTok{if} \NormalTok{(id == -}\DecValTok{1}\NormalTok{) exit(}\DecValTok{1}\NormalTok{); }\CommentTok{// fork failed }
+\KeywordTok{if} \NormalTok{(id > }\DecValTok{0}\NormalTok{)}
+\NormalTok{\{ }
+\CommentTok{// I'm the original parent and }
+\CommentTok{// I just created a child process with id 'id'}
+\CommentTok{// Use waitpid to wait for the child to finish}
+\NormalTok{\} }\KeywordTok{else} \NormalTok{\{ }\CommentTok{// returned zero}
+\CommentTok{// I must be the newly made child process}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{What is a fork bomb ?}\label{what-is-a-fork-bomb}
+
+A `fork bomb' is when you attempt to create an infinite number of
+processes. A simple example is shown below:
+
+\begin{verbatim}
+while (1) fork();
+\end{verbatim}
+
+This will often bring a system to a near-standstill as it attempts to
+allocate CPU time and memory to a very large number of processes that
+are ready to run. Comment: System administrators don't like fork-bombs
+and may set upper limits on the number of processes each user can have
+or may revoke login rights because it creates a disturbance in the force
+for other users' programs. You can also limit the number of child
+processes created by using \texttt{setrlimit()}.
+
+fork bombs are not necessarily malicious - they occasionally occur due
+to student coding errors.
+
+Angrave suggests that the Matrix trilogy, where the machine and man
+finally work together to defeat the multiplying Agent-Smith, was a
+cinematic plot based on an AI-driven fork-bomb.
+
+\subsection{How does the parent process wait for the child to
+finish?}\label{how-does-the-parent-process-wait-for-the-child-to-finish}
+
+Use \texttt{waitpid} (or \texttt{wait}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pid_t child_id = fork();}
+\KeywordTok{if} \NormalTok{(child_id == -}\DecValTok{1}\NormalTok{) \{ perror(}\StringTok{"fork"}\NormalTok{); exit(EXIT_FAILURE);\}}
+\KeywordTok{if} \NormalTok{(child_id > }\DecValTok{0}\NormalTok{) \{ }
+  \CommentTok{// We have a child! Get their exit code}
+  \DataTypeTok{int} \NormalTok{status; }
+  \NormalTok{waitpid( child_id, &status, }\DecValTok{0} \NormalTok{);}
+  \CommentTok{// code not shown to get exit status from child}
+\NormalTok{\} }\KeywordTok{else} \NormalTok{\{ }\CommentTok{// In child ...}
+  \CommentTok{// start calculation}
+  \NormalTok{exit(}\DecValTok{123}\NormalTok{);}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Can I make the child process execute another
+program?}\label{can-i-make-the-child-process-execute-another-program}
+
+Yes. Use one of the \texttt{exec} functions after forking.
+{[}{[}\url{http://man7.org/linux/man-pages/man3/exec.3.html}{]}{]} The
+\texttt{exec} set of functions replaces the process image with the the
+process image of what is being called. This means that any lines of code
+after the \texttt{exec} call are replaced. Any other work you want the
+child process to do should be done before the \texttt{exec} call.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <unistd.h>}
+\OtherTok{#include <sys/types.h> }
+\OtherTok{#include <sys/wait.h>}
+\OtherTok{#include <stdlib.h>}
+
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char}\NormalTok{**argv) \{}
+  \NormalTok{pid_t child = fork();}
+  \KeywordTok{if} \NormalTok{(child == -}\DecValTok{1}\NormalTok{) }\KeywordTok{return} \NormalTok{EXIT_FAILURE;}
+  \KeywordTok{if} \NormalTok{(child) \{ }\CommentTok{/* I have a child! */}
+    \DataTypeTok{int} \NormalTok{status;}
+    \NormalTok{waitpid(child , &status ,}\DecValTok{0}\NormalTok{);}
+    \KeywordTok{return} \NormalTok{EXIT_SUCCESS;}
+
+  \NormalTok{\} }\KeywordTok{else} \NormalTok{\{ }\CommentTok{/* I am the child */}
+    \CommentTok{// Other versions of exec pass in arguments as arrays}
+    \CommentTok{// Remember first arg is the program name}
+    \CommentTok{// Last arg must be a char pointer to NULL}
+
+    \NormalTok{execl(}\StringTok{"/bin/ls"}\NormalTok{, }\StringTok{"ls"}\NormalTok{,}\StringTok{"-alh"}\NormalTok{, (}\DataTypeTok{char} \NormalTok{*) NULL);}
+
+    \CommentTok{// If we get to this line, something went wrong!}
+    \NormalTok{perror(}\StringTok{"exec failed!"}\NormalTok{);}
+  \NormalTok{\}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{A simpler way to execute another
+program}\label{a-simpler-way-to-execute-another-program}
+
+Use \texttt{system}!!! Here is how to use it:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+
+\OtherTok{#include <unistd.h>}
+\OtherTok{#include <stdlib.h>}
+
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char}\NormalTok{**argv) \{}
+  \NormalTok{system(}\StringTok{"/bin/ls"}\NormalTok{);}
+  \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{system} call would fork, exec the command passed by
+parameter and the parent process would wait for this to finish. This
+also means that \texttt{system} is a blocking call - The parent process
+can't continue until the process started by \texttt{system} exits. This
+may be useful or it may not be, use with caution.
+
+\subsection{What is the silliest fork
+example?}\label{what-is-the-silliest-fork-example}
+
+A slightly silly example is shown below. What will it print? Try it with
+multiple arguments to your program.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <unistd.h>}
+\OtherTok{#include <stdio.h>}
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char} \NormalTok{**argv) \{}
+  \NormalTok{pid_t id;}
+  \DataTypeTok{int} \NormalTok{status; }
+  \KeywordTok{while} \NormalTok{(--argc && (id=fork())) \{}
+    \NormalTok{waitpid(id,&status,}\DecValTok{0}\NormalTok{); }\CommentTok{/* Wait for child*/}
+  \NormalTok{\}}
+  \NormalTok{printf(}\StringTok{"%d:%s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, argc, argv[argc]);}
+  \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The amazing parallel apparent-O(N) \emph{sleepsort} is today's silly
+winner. First published on 4chan 2011
+{[}{[}\url{https://dis.4chan.org/read/prog/1295544154}{]}{]}. A version
+of this awful but amusing sorting algorithm is shown below.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{c, }\DataTypeTok{char} \NormalTok{**v)}
+\NormalTok{\{}
+        \KeywordTok{while} \NormalTok{(--c > }\DecValTok{1} \NormalTok{&& !fork());}
+        \DataTypeTok{int} \NormalTok{val  = atoi(v[c]);}
+        \NormalTok{sleep(val);}
+        \NormalTok{printf(}\StringTok{"%d}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, val);}
+        \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{What is different in the child process than the parent
+process?}\label{what-is-different-in-the-child-process-than-the-parent-process}
+
+The key differences include:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  The process id returned by \texttt{getpid()}. The parent process id
+  returned by \texttt{getppid()}.
+\item
+  The parent is notified via a signal when the child process finishes
+  but not vice versa.
+\item
+  The child does not inherit pending signals or timer alarms.\\For a
+  complete list see the {[}{[}fork man
+  page\textbar{}\url{http://man7.org/linux/man-pages/man2/fork.2.html}{]}{]}
+\end{itemize}
+
+\section{Do child processes share open
+filehandles?}\label{do-child-processes-share-open-filehandles}
+
+Yes! In fact both processes use the same underlying kernel file
+descriptor. For example if one process rewinds the random access
+position back to the beginning of the file, then both processes are
+affected.
+
+Both child and parent should \texttt{close} (or \texttt{fclose}) their
+file descriptors or file handle respectively.
+
+\subsection{How can I find out more?}\label{how-can-i-find-out-more}
+
+Read the man pages!
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  {[}{[}fork\textbar{}\url{http://man7.org/linux/man-pages/man2/fork.2.html}{]}{]}
+\item
+  {[}{[}exec\textbar{}\url{http://man7.org/linux/man-pages/man3/exec.3.html}{]}{]}
+\item
+  {[}{[}wait\textbar{}\url{http://man7.org/linux/man-pages/man2/wait.2.html}{]}{]}
+\end{itemize}

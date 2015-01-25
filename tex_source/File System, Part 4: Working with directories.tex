@@ -1,0 +1,357 @@
+\subsection{How do I find out if file (an inode) is a regular file or
+directory?}\label{how-do-i-find-out-if-file-an-inode-is-a-regular-file-or-directory}
+
+Use the \texttt{S\_ISDIR} macro to check the mode bits in the stat
+struct:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{struct} \NormalTok{stat s;}
+\NormalTok{stat(}\StringTok{"/tmp"}\NormalTok{, &s);}
+\KeywordTok{if} \NormalTok{(S_ISDIR(s.st_mode)) \{ ... }
+\end{Highlighting}
+\end{Shaded}
+
+Note, later we will write robust code to verify that the stat call
+succeeds (returns 0); if the \texttt{stat} call fails, we should assume
+the stat struct content is arbitrary.
+
+\subsection{How do I recurse into
+subdirectories?}\label{how-do-i-recurse-into-subdirectories}
+
+First a puzzle - how many bugs can you find in the following code?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void} \NormalTok{dirlist(}\DataTypeTok{char} \NormalTok{*path) \{}
+  
+  \KeywordTok{struct} \NormalTok{dirent *dp;}
+  \NormalTok{DIR *dirp = opendir(path);}
+  \KeywordTok{while} \NormalTok{((dp = readdir(dirp)) != NULL) \{}
+     \DataTypeTok{char} \NormalTok{newpath[strlen(path) + strlen(dp->d_name) + }\DecValTok{1}\NormalTok{];}
+     \NormalTok{sprintf(newpath,}\StringTok{"%s/%s"}\NormalTok{, newpath, dp->d_name);}
+     \NormalTok{printf(}\StringTok{"%s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, dp->d_name);}
+     \NormalTok{dirlist(newpath);}
+  \NormalTok{\}}
+\NormalTok{\}}
+
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char} \NormalTok{**argv) \{ dirlist(argv[}\DecValTok{1}\NormalTok{]); }\KeywordTok{return} \DecValTok{0}\NormalTok{; \}}
+\end{Highlighting}
+\end{Shaded}
+
+Did you find all 5 bugs?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Check opendir result (perhaps user gave us a path that can not be opened as a directory}
+\KeywordTok{if} \NormalTok{(!dirp) \{ perror(}\StringTok{"Could not open directory"}\NormalTok{); }\KeywordTok{return}\NormalTok{; \}}
+\CommentTok{// +2 as we need space for the / and the terminating 0}
+\DataTypeTok{char} \NormalTok{newpath[strlen(path) + strlen(dp->d_name) + }\DecValTok{2}\NormalTok{]; }
+\CommentTok{// Correct parameter}
+\NormalTok{sprintf(newpath,}\StringTok{"%s/%s"}\NormalTok{, path, dp->d_name); }
+\CommentTok{// Perform stat test (and verify) before recursing}
+\KeywordTok{if} \NormalTok{(}\DecValTok{0} \NormalTok{== stat(newpath,&s) && S_ISDIR(s.st_mode)) dirlist(new path)}
+\CommentTok{// Resource leak: the directory file handle is not closed after the while loop}
+\NormalTok{closedir(dirp);}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{What are symbolic links? How do they work? How do I make
+one?}\label{what-are-symbolic-links-how-do-they-work-how-do-i-make-one}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{symlink(}\DataTypeTok{const} \DataTypeTok{char} \NormalTok{*target, }\DataTypeTok{const} \DataTypeTok{char} \NormalTok{*symlink);}
+\end{Highlighting}
+\end{Shaded}
+
+To create a symbolic link in the shell use \texttt{ln\ -s}
+
+To read the contents of the link as just a file use \texttt{readlink}
+
+\begin{verbatim}
+$ readlink myfile.txt
+../../dir1/notes.txt
+\end{verbatim}
+
+To read the meta-(stat) information of a symbolic link use
+\texttt{lstat} not \texttt{stat}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{struct} \NormalTok{stat s;}
+\NormalTok{stat(}\StringTok{"myfile.txt"}\NormalTok{, &s1); }\CommentTok{// stat info about  the notes.txt file}
+\NormalTok{lstat(}\StringTok{"myfile.txt"}\NormalTok{, &s2); }\CommentTok{// stat info about the symbolic link}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Advantages of symbolic
+links}\label{advantages-of-symbolic-links}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Can refer to a files that don't exist yet
+\item
+  Unlike hard links, can refer to directories as well as regular files
+\item
+  Can refer to files (and directories) that exist outside of the current
+  file system
+\end{itemize}
+
+Main disadvantage: Slower than regular files and directories. When the
+links contents are read, they must be interpreted as a new path to the
+target file.
+
+\subsection{\texorpdfstring{What is \texttt{/dev/null} and when is it
+used?}{What is /dev/null and when is it used?}}\label{what-is-devnull-and-when-is-it-used}
+
+The file \texttt{/dev/null} is a great place to store bits that you
+never need to read!\\Bytes sent to \texttt{/dev/null/} are never stored
+- they are simply discarded. A common use of \texttt{/dev/null} is to
+discard standard output. For example,
+
+\begin{verbatim}
+$ ls . >/dev/null
+\end{verbatim}
+
+\subsection{Why would I want to set a directory's sticky
+bit?}\label{why-would-i-want-to-set-a-directorys-sticky-bit}
+
+When a directory's sticky bit is set only the file's owner, the
+directory's owner, and the root user can rename (or delete) the file.
+This is useful when multiple users have write access to a common
+directory
+
+A common use of the sticky bit is for the shared and writable
+\texttt{/tmp} directory.
+
+\subsection{\texorpdfstring{Why do shell and script programs start with
+\texttt{\#!/usr/bin/env\ python}
+?}{Why do shell and script programs start with \#!/usr/bin/env python ?}}\label{why-do-shell-and-script-programs-start-with-usrbinenv-python}
+
+Ans: For portability!\\While it is possible to write the fully qualified
+path to a python or perl interpreter, this approach is not portable
+because you may have installed python in a different directory me.
+
+To overcome this use the \texttt{env} utility is used to find and
+execute the program on the user's path.\\The env utility itself has
+historically been stored in \texttt{/usr/bin} - and it must be specified
+with an absolute path.
+
+\subsection{\texorpdfstring{How do I make `hidden' files i.e.~not listed
+by ``ls''? How do I list
+them?}{How do I make hidden files i.e.~not listed by ls? How do I list them?}}\label{how-do-i-make-hidden-files-i.e.not-listed-by-ls-how-do-i-list-them}
+
+Easy! Create files (or directories) that start with a ``.'' - then (by
+default) they are not displayed by standard tools and utilities.
+
+This is often used to hide configuration files inside the user's home
+directory.\\For example \texttt{ssh} stores its preferences inside a
+directory called \texttt{.sshd}
+
+To list all files including the normally hidden entries use \texttt{ls}
+with \texttt{-a} option
+
+\begin{verbatim}
+$ ls -a
+.           a.c         myls
+..          a.out           other.txt
+.secret 
+\end{verbatim}
+
+\subsection{What happens if I turn off the execute bit on
+directories?}\label{what-happens-if-i-turn-off-the-execute-bit-on-directories}
+
+The execute bit for a directory is used to control whether the directory
+contents is listable.
+
+\begin{verbatim}
+$ chmod ugo-x dir1
+$ ls -l
+drw-r--r--   3 angrave  staff   102 Nov 10 11:22 dir1
+\end{verbatim}
+
+However when attempting to list the contents of the directory,
+
+\begin{verbatim}
+$ ls dir1
+ls: dir1: Permission denied
+\end{verbatim}
+
+In other words, the directory itself is discoverable but its contents
+cannot be listed.
+
+\subsection{What is file globbing (and who does
+it)?}\label{what-is-file-globbing-and-who-does-it}
+
+Before executing the program the shell expands parameters into matching
+filenames. For example, if the current directory has three filenames
+that start with my ( my1.txt mytext.txt myomy), then
+
+\begin{verbatim}
+$ echo my*
+\end{verbatim}
+
+Expands to
+
+\begin{verbatim}
+$ echo my1.txt mytext.txt myomy
+\end{verbatim}
+
+This is known as file globbing and is processed before the command is
+executed.\\ie the command's parameters are identical to manually typing
+every matching filename.
+
+\subsection{Creating secure
+directories}\label{creating-secure-directories}
+
+Suppose you created your own directory in /tmp and then set the
+permissions so that only you can use the directory (see below). Is this
+secure?
+
+\begin{verbatim}
+$ mkdir /tmp/mystuff
+$ chmod 700 /tmp/mystuff
+\end{verbatim}
+
+There is a window of opportunity between when the directory is created
+and when it's permissions are changed. This leads to several
+vulnerabilities that are based on a race condition (where an attacker
+modifies the directory in some way before the privileges are removed).
+Some examples include:
+
+Another user replaces \texttt{mystuff} with a hardlink to an existing
+file or directory owned by the second user, then they would be able to
+read and control the contents of the \texttt{mystuff} directory. Oh no -
+our secrets are no longer secret!
+
+However in this specific example the \texttt{/tmp} directory has the
+sticky bit set, so other users may not delete the \texttt{mystuff}
+directory, and the simple attack scenario described above is impossible.
+This does not mean that creating the directory and then later making the
+directory private is secure! A better version is to atomically create
+the directory with the correct permissions from its inception -
+
+\begin{verbatim}
+$ mkdir -m 700 /tmp/mystuff
+\end{verbatim}
+
+\subsection{How do I automatically create parent
+directories?}\label{how-do-i-automatically-create-parent-directories}
+
+\begin{verbatim}
+$ mkdir -p d1/d2/d3
+\end{verbatim}
+
+Will automatically create d1 and d2 if they don't exist.
+
+\subsection{My default umask 022; what does this
+mean?}\label{my-default-umask-022-what-does-this-mean}
+
+The umask \emph{subtracts} (reduces) permission bits from 777 and is
+used when new files and new directories are created by open,mkdir etc.
+Thus \texttt{022} (octal) means that group and other privileges will not
+include the writable bit . Each process (including the shell) has a
+current umask value. When forking, the child inherits the parent's umask
+value.
+
+For example, by setting the umask to 077 in the shell, ensures that
+future file and directory creation will only be accessible to the
+current user,
+
+\begin{verbatim}
+$ umask 077
+$ mkdir secretdir
+\end{verbatim}
+
+As a code example, suppose a new file is created with \texttt{open()}
+and mode bits \texttt{666} (write and read bits for user,group and
+other):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{open(}\StringTok{"myfile"}\NormalTok{, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);}
+\end{Highlighting}
+\end{Shaded}
+
+If umask is octal 022, then the permissions of the created file will be
+0666 \& \textasciitilde{}022\\ie.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+           \NormalTok{S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How can I copy bytes from one file to
+another?}\label{how-can-i-copy-bytes-from-one-file-to-another}
+
+Use the versatile \texttt{dd} command. For example, the following
+command copies 1mb of data from the file \texttt{/dev/urandom} to the
+file \texttt{/dev/null}. The data is copied as 1024 blocks of blocksize
+1024 bytes.
+
+\begin{verbatim}
+$ dd if=/dev/urandom of=/dev/null bs=1k count=1024
+\end{verbatim}
+
+Both the input and output files in the example above are virtual - they
+don't exist on a disk. This means the speed of the transfer is
+unaffected by hardware power. Instead they are part of the \texttt{dev}
+filesystem, which is virtual filesystem provided by the kernel.\\The
+virtual file \texttt{/dev/urandom} provides an infinite stream of random
+bytes, while the virtal file \texttt{/dev/null} ignores all bytes
+written to it. A common use of \texttt{/dev/null} is to discard the
+output of a command,
+
+\begin{verbatim}
+$ myverboseexecutable > /dev/null
+\end{verbatim}
+
+Another commonly used /dev virtual file is \texttt{/dev/zero} which
+provides an infinite stream of zero bytes.\\For example, we can
+benchmark the operating system performance of reading stream zero bytes
+in the kernel into a process memory and writing the bytes back to the
+kernel without any disk I/O. Note the throughput
+(\textasciitilde{}20GB/s) is strongly dependent on blocksize. For small
+block sizes the overhead of additional \texttt{read} and \texttt{write}
+system calls will dominate.
+
+\begin{verbatim}
+$ dd if=/dev/zero of=/dev/null bs=1M count=1024
+1024+0 records in
+1024+0 records out
+1073741824 bytes (1.1 GB) copied, 0.0539153 s, 19.9 GB/s
+\end{verbatim}
+
+\subsection{What happens when I touch a
+file?}\label{what-happens-when-i-touch-a-file}
+
+The \texttt{touch} executable creates file if it does not exist and also
+updates the file's last modified time to be the current time. For
+example, we can make a new private file with the current time:
+
+\begin{verbatim}
+$ umask 077       # all future new files will maskout all r,w,x bits for group and other access
+$ touch file123   # create a file if it does not exist, and update its modified time
+$ stat file123
+  File: `file123'
+  Size: 0           Blocks: 0          IO Block: 65536  regular empty file
+Device: 21h/33d Inode: 226148      Links: 1
+Access: (0600/-rw-------)  Uid: (395606/ angrave)   Gid: (61019/     ews)
+Access: 2014-11-12 13:42:06.000000000 -0600
+Modify: 2014-11-12 13:42:06.001787000 -0600
+Change: 2014-11-12 13:42:06.001787000 -0600
+\end{verbatim}
+
+An example use of touch is to force make to recompile a file that is
+unchanged after modifying the compiler options inside the makefile.
+Remeber that make is `lazy' - it will compare the modified time of the
+source file with the corresponding output file to see if the file needs
+to be recompiled
+
+\begin{verbatim}
+$ touch myprogram.c   # force my source file to be recompiled
+$ make
+\end{verbatim}

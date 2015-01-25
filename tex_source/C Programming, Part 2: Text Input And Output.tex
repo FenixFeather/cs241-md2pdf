@@ -1,0 +1,180 @@
+\subsection{How do I print strings, ints, chars to the standard output
+stream?}\label{how-do-i-print-strings-ints-chars-to-the-standard-output-stream}
+
+Use \texttt{printf}. The first parameter is a format string that
+includes placeholders for the data to be printed. Common format
+specifiers are \texttt{\%s} treat the argument as a c string pointer,
+keep printing all characters until the NULL-character is reached;
+\texttt{\%d} print the argument as an integer; \texttt{\%p} print the
+argument as a memory address.
+
+A simple example is shown below:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{*name = ... ; }\DataTypeTok{int} \NormalTok{score = ...;}
+\NormalTok{printf(}\StringTok{"Hello %s, your result is %d}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, name, score);}
+\NormalTok{printf(}\StringTok{"Debug: The string and int are stored at: %p and %p}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, name, &score );}
+\CommentTok{// name already is a char pointer and points to the start of the array. }
+\CommentTok{// We need "&" to get the address of the int variable}
+\end{Highlighting}
+\end{Shaded}
+
+By default, for performance, \texttt{printf} does not actually write
+anything out (by calling write) until its buffer is full or a newline is
+printed.
+
+\subsection{How else can I print strings and single
+characters?}\label{how-else-can-i-print-strings-and-single-characters}
+
+Use \texttt{puts(\ name\ );} and \texttt{putchar(\ c\ )} where name is a
+pointer to a C string and c is just a \texttt{char}
+
+\subsection{How do I print to other file
+streams?}\label{how-do-i-print-to-other-file-streams}
+
+Use
+\texttt{fprintf(\ \_file\_\ ,\ "Hello\ \%s,\ score:\ \%d",\ name,\ score);}\\Where
+\_file\_ is either predefined `stdout' `stderr' or a FILE pointer that
+was returned by \texttt{fopen} or \texttt{fdopen}
+
+\subsection{How do I print data into a C
+string?}\label{how-do-i-print-data-into-a-c-string}
+
+Use \texttt{sprintf} or better \texttt{snprintf}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{result[}\DecValTok{200}\NormalTok{];}
+\DataTypeTok{int} \NormalTok{len = snprintf(result, }\KeywordTok{sizeof}\NormalTok{(result), }\StringTok{"%s:%d"}\NormalTok{, name, score);}
+\end{Highlighting}
+\end{Shaded}
+
+snprintf returns the number of characters written excluding the
+terminating byte. In the above example this would be a maximum of 199.
+
+\subsection{\texorpdfstring{How do I parse input using \texttt{scanf}
+into
+parameters?}{How do I parse input using scanf into parameters?}}\label{how-do-i-parse-input-using-scanf-into-parameters}
+
+Use \texttt{scanf} (or \texttt{fscanf} or \texttt{sscanf}) to get input
+from the default input stream, an arbitrary file stream or a C string
+respectively.\\It's a good idea to check the return value to see how
+many items were parsed.\\\texttt{scanf} functions require valid
+pointers. It's a common source of error to pass in an incorrect pointer
+value. For example,
+
+\begin{verbatim}
+int *data = (int *) malloc(sizeof(int));
+char *line = "v 10";
+char type;
+// Good practice: Check scanf parsed the line and read two values:
+int ok = 2 == sscanf(line, "%c %d", &type, &data); // pointer error
+\end{verbatim}
+
+We wanted to write the character value into c and the integer value into
+the malloc'd memory.\\However we passed the address of the data pointer,
+not what the pointer is pointing to! So \texttt{sscanf} will change the
+pointer itself. i.e.~the pointer will now point to address 10 so this
+code will later fail e.g.~when free(data) is called.
+
+\subsection{How do I stop scanf from causing a buffer
+overflow?}\label{how-do-i-stop-scanf-from-causing-a-buffer-overflow}
+
+The following code assumes the scanf won't read more than 10 characters
+(including the terminating byte) into the buffer.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{buffer[}\DecValTok{10}\NormalTok{];}
+\NormalTok{scanf(}\StringTok{"%s"}\NormalTok{,buffer);}
+\end{Highlighting}
+\end{Shaded}
+
+You can include an optional integer to specify how many characters
+EXCLUDING the terminating byte:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{buffer[}\DecValTok{10}\NormalTok{];}
+\NormalTok{scanf(}\StringTok{"%9s"}\NormalTok{, buffer); }\CommentTok{// reads upto 9 charactes from input (leave room for the 10th byte to be the terminating byte)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Why is \texttt{gets} dangerous? What should
+I use
+instead?}{Why is gets dangerous? What should I use instead?}}\label{why-is-gets-dangerous-what-should-i-use-instead}
+
+The following code is vulnerable to buffer overflow. It assumes or
+trusts that the input line will be no more than 10 characters, including
+the terminating byte.
+
+\begin{verbatim}
+char buf[10];
+gets(buf); // Remember the array name means the first byte of the array
+\end{verbatim}
+
+\texttt{gets} is deprecated and will be removed in future versions of
+the C standard. Programs should use \texttt{fgets} or \texttt{getline}
+instead.
+
+Where each have the following structure respectively:
+
+\begin{verbatim}
+char *fgets (char *str, int num, FILE *stream); 
+
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+\end{verbatim}
+
+Here's a simple, safe way to read a single line. Lines longer than 9
+characters will be truncated:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{buffer[}\DecValTok{10}\NormalTok{];}
+\DataTypeTok{char} \NormalTok{*result = fgets(buffer, }\KeywordTok{sizeof}\NormalTok{(buffer), stdin);}
+\end{Highlighting}
+\end{Shaded}
+
+The result is NULL if there was an error or the end of the file is
+reached.\\Note, unlike \texttt{gets}, \texttt{fgets} copies the newline
+into the buffer, which you may want to discard-
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{if} \NormalTok{(!result) \{ }\KeywordTok{return}\NormalTok{; }\CommentTok{/* no data - don't read the buffer contents */}\NormalTok{\}}
+
+\DataTypeTok{int} \NormalTok{i= strlen(buffer) -}\DecValTok{1}\NormalTok{;}
+\KeywordTok{if} \NormalTok{(buffer[i] == }\CharTok{'\textbackslash{}n'}\NormalTok{) buffer[i] = '\textbackslash{}}\DecValTok{0}\NormalTok{'}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{How do I use
+\texttt{getline}?}{How do I use getline?}}\label{how-do-i-use-getline}
+
+One of the advantages of \texttt{getline} is that will automatically
+(re-) allocate a buffer on the heap of sufficient size.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// ssize_t getline(char **lineptr, size_t *n, FILE *stream);}
+
+ \CommentTok{/* set buffer and size to 0; they will be changed by getline*/}
+\DataTypeTok{char} \NormalTok{*buffer = NULL;}
+\NormalTok{size_t size = }\DecValTok{0}\NormalTok{;}
+
+\NormalTok{ssize_t chars = getline(&buffer, &size, stdin);}
+
+\CommentTok{// Discard newline character if it is present,}
+\KeywordTok{if} \NormalTok{(chars > }\DecValTok{0} \NormalTok{&& buffer[chars -}\DecValTok{1}\NormalTok{] ==}\CharTok{'\textbackslash{}n'}\NormalTok{) buffer[chars}\DecValTok{-1}\NormalTok{] = '\textbackslash{}}\DecValTok{0}\NormalTok{';}
+
+\CommentTok{// Read another line.}
+\CommentTok{// The existing buffer will be re-used, or, if necessary,}
+\CommentTok{// It will be `free`'d and a new larger buffer will `malloc`'d}
+\NormalTok{chars = getline(&buffer, &size, stdin);}
+
+\CommentTok{// Later... don't forget to free the buffer!}
+\NormalTok{free(buffer);}
+\end{Highlighting}
+\end{Shaded}
+

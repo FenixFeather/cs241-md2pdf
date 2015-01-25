@@ -1,0 +1,119 @@
+\chapter{Pthreads}s a thread?}\label{what-is-a-thread}
+
+A thread is short for `thread-of-execution'. It represents the sequence
+of instructions that the CPU has (and will) execute. To remember how to
+return from function calls, and to store the values of automatic
+variables and parameters a thread uses a stack.
+
+\subsection{How does the thread's stack
+work?}\label{how-does-the-threads-stack-work}
+
+Your main function (and other functions you might call) have automatic
+variables. We will store them in memory using a stack and keep track of
+how large the stack is by using a simple pointer (the ``stack
+pointer''). If the thread calls another function, we move our stack
+pointer down, so that we have more space for parameters and automatic
+variables. Once it returns from a function, we can move the stack
+pointer back up to its previous value. We keep a copy of the old stack
+pointer value - on the stack! This is why returning from a function is
+very quick - it's easy to `free' the memory used by automatic variables
+- we just need to change the stack pointer.
+
+\includegraphics{http://i.imgur.com/RPblpE1.png}
+
+\subsection{How many threads can my process
+have?}\label{how-many-threads-can-my-process-have}
+
+You can have more than one thread running inside a process. You get the
+first thread for free! It runs the code you write inside `main'. If you
+need more threads you can call \texttt{pthread\_create} to create a new
+thread using the pthread library. You'll need to pass a pointer to a
+function so that the thread knows where to start.
+
+The threads you create all live inside the same virtual memory because
+they are part of the same process. Thus they can all see the heap, the
+global variables and the program code etc. Thus you can have two (or
+more CPUs) working on your program at the same time and inside the same
+process. It's up to the operating system to assign the threads to CPUs.
+If you have more active threads than CPUs then the kernel will assign
+the thread to a CPU for a short duration (or until it runs out of things
+to do) and then will automatically switch the CPU to work on another
+thread.\\For example, one CPU might be processing the game AI while
+another thread is computing the graphics output.
+
+\subsection{Hello world pthread
+example}\label{hello-world-pthread-example}
+
+To use pthreads you will need to include \texttt{pthread.h} AND you need
+to compile with \texttt{-pthread} (or \texttt{-lpthread}) compiler
+option. This option tells the compiler that your program requires
+threading support
+
+To create a thread use the function \texttt{pthread\_create}. This
+function takes four arguments:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{pthread_create(pthread_t *thread, }\DataTypeTok{const} \NormalTok{pthread_attr_t *attr,}
+                   \DataTypeTok{void} \NormalTok{*(*start_routine) (}\DataTypeTok{void} \NormalTok{*), }\DataTypeTok{void} \NormalTok{*arg);}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  The first is a pointer to a variable that will hold the id of the
+  newly created thread.
+\item
+  The second is a pointer to attributes that we can use to tweak and
+  tune some of the advanced features of pthreads.
+\item
+  The third is a pointer to a function that we want to run
+\item
+  Fourth is a pointer that will be given to our function
+\end{itemize}
+
+The argument \texttt{void\ *(*start\_routine)\ (void\ *)} is difficult
+to read! It means a pointer that takes a \texttt{void\ *} pointer and
+returns a \texttt{void\ *} pointer. It looks like a function declaration
+except that the name of the function is wrapped with
+\texttt{(*\ ....\ )}
+
+Here's the simplest example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <pthread.h>}
+\CommentTok{// remember to set compilation option -pthread}
+
+\DataTypeTok{void} \NormalTok{*busy(}\DataTypeTok{void} \NormalTok{*ptr) \{}
+\CommentTok{// ptr will point to "Hi"}
+    \NormalTok{puts(}\StringTok{"Hello World"}\NormalTok{);}
+    \KeywordTok{return} \NormalTok{NULL;}
+\NormalTok{\}}
+\DataTypeTok{int} \NormalTok{main() \{}
+    \NormalTok{pthread_t id;}
+    \NormalTok{pthread_create(&id, NULL, busy, }\StringTok{"Hi"}\NormalTok{);}
+    \KeywordTok{while} \NormalTok{(}\DecValTok{1}\NormalTok{) \{\} }\CommentTok{// Loop forever}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+If we want to wait for our thread to finish use \texttt{pthread\_join}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void} \NormalTok{*result;}
+\NormalTok{pthread_join(id, &result);}
+\end{Highlighting}
+\end{Shaded}
+
+In the above example, \texttt{result} will be \texttt{null} because the
+busy function returned \texttt{null}.\\We need to pass the address-of
+result because \texttt{pthread\_join} will be writing into the contents
+of our pointer.
+
+See
+\href{https://github.com/angrave/SystemProgramming/wiki/Pthreads\%2C-Part-2\%3A-Usage-in-Practice}{Pthreads
+Part 2}

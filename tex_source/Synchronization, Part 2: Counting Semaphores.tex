@@ -1,0 +1,128 @@
+\subsection{What is a counting
+semaphore?}\label{what-is-a-counting-semaphore}
+
+A counting semaphore contains a value and supports two operations
+``wait'' and ``post''. Post increments the semaphore and immediately
+returns. ``wait'' will wait if the count is zero. If the count is
+non-zero the semaphore decrements the count and immediately returns.
+
+An analogy is a count of the cookies in a cookie jar (or gold coins in
+the treasure chest). Before taking a cookie, call `wait'. If there are
+no cookies left then \texttt{wait} will not return: It will
+\texttt{wait} until another thread increments the semaphore by calling
+post.
+
+In short, \texttt{post} increments and immediately returns whereas
+\texttt{wait} will wait if the count is zero. Before returning it will
+decrement count.
+
+\subsection{How do I create a
+semaphore?}\label{how-do-i-create-a-semaphore}
+
+This page introduces unnamed semaphores. Unfortunately Mac OS X does not
+support these yet.
+
+First decide if the initial value should be zero or some other value
+(e.g.~the number of remaining spaces in an array).\\Unlike pthread mutex
+there are not shortcuts to creating a semaphore - use `sem\_init'
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sem_t s;}
+\DataTypeTok{int} \NormalTok{main() \{}
+  \NormalTok{sem_init(&s, }\DecValTok{0}\NormalTok{, }\DecValTok{10}\NormalTok{); }\CommentTok{// returns -1 (=FAILED) on OS X}
+  \NormalTok{sem_wait(&s); }\CommentTok{// Could do this 10 times without blocking}
+  \NormalTok{sem_post(&s); }\CommentTok{// Announce that we've finished (and one more resource item is available; increment count)}
+  \NormalTok{sem_destroy(&s); }\CommentTok{// release resources of the semaphore}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Can I call wait and post from different
+threads?}\label{can-i-call-wait-and-post-from-different-threads}
+
+Yes! Unlike a mutex, the increment and decrement can be from different
+threads.
+
+\subsection{Can I use a semaphore instead of a
+mutex?}\label{can-i-use-a-semaphore-instead-of-a-mutex}
+
+Yes - though the overhead of a semaphore is greater. To use a semaphore:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Initialize the semaphore with a count of one.
+\item
+  Replace \texttt{...lock} with \texttt{sem\_wait}
+\item
+  Replace \texttt{...unlock} with \texttt{sem\_post}
+\end{itemize}
+
+\subsection{Can I use sem\_post inside a signal
+handler?}\label{can-i-use-semux5fpost-inside-a-signal-handler}
+
+Yes! \texttt{sem\_post} is one of a handful of functions that can be
+correctly used inside a signal handler.\\This means we can release a
+waiting thread which can now make all of the calls that we were
+not\\allowed to call inside the signal handler itself (e.g.
+\texttt{printf}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <pthread.h>}
+\OtherTok{#include <signal.h>}
+\OtherTok{#include <semaphore.h>}
+\OtherTok{#include <unistd.h>}
+
+\NormalTok{sem_t s;}
+
+\DataTypeTok{void} \NormalTok{handler(}\DataTypeTok{int} \NormalTok{signal)}
+\NormalTok{\{}
+    \NormalTok{sem_post(&s); }\CommentTok{/* Release the Kraken! */}
+\NormalTok{\}}
+
+\DataTypeTok{void} \NormalTok{*singsong(}\DataTypeTok{void} \NormalTok{*param)}
+\NormalTok{\{}
+    \NormalTok{sem_wait(&s);}
+    \NormalTok{printf(}\StringTok{"I had to wait until your signal released me!}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{);}
+\NormalTok{\}}
+
+\DataTypeTok{int} \NormalTok{main()}
+\NormalTok{\{}
+    \DataTypeTok{int} \NormalTok{ok = sem_init(&s, }\DecValTok{0}\NormalTok{, }\DecValTok{0} \CommentTok{/* Initial value of zero*/}\NormalTok{); }
+    \KeywordTok{if} \NormalTok{(ok == -}\DecValTok{1}\NormalTok{) \{}
+       \NormalTok{perror(}\StringTok{"Could not create unnamed semaphore"}\NormalTok{);}
+       \KeywordTok{return} \DecValTok{1}\NormalTok{;}
+    \NormalTok{\}}
+    \NormalTok{signal(SIGINT, handler); }\CommentTok{// Too simple! See note below}
+
+    \NormalTok{pthread_t tid;}
+    \NormalTok{pthread_create(&tid, NULL, singsong, NULL);}
+    \NormalTok{pthread_exit(NULL); }\CommentTok{/* Process will exit when there are no more threads */}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Note robust programs do not use \texttt{signal()} in a multi-threaded
+program (``The effects of signal() in a multithreaded process are
+unspecified.'' - the signal man page); a more correct program will need
+to use \texttt{sigaction}.
+
+\subsection{How do I find out more?}\label{how-do-i-find-out-more}
+
+Play using a real linux system! (9/19/14: Linux-In-the-Browser project
+is missing semaphore.h - this will be fixed in the next update). Read
+the man pages:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  {[}{[}sem\_init\textbar{}\url{http://man7.org/linux/man-pages/man3/sem_init.3.html}{]}{]}
+\item
+  {[}{[}sem\_wait\textbar{}\url{http://man7.org/linux/man-pages/man3/sem_wait.3.html}{]}{]}
+\item
+  {[}{[}sem\_post\textbar{}\url{http://man7.org/linux/man-pages/man3/sem_post.3.html}{]}{]}
+\item
+  {[}{[}sem\_destroy\textbar{}\url{http://man7.org/linux/man-pages/man3/sem_destroy.3.html}{]}{]}
+\end{itemize}

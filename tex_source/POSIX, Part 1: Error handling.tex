@@ -1,0 +1,199 @@
+\chapter{POSIX}xorpdfstring{What is \texttt{errno} and when is it
+set?}{What is errno and when is it set?}}\label{what-is-errno-and-when-is-it-set}
+
+POSIX defines a special integer \texttt{errno} that is set when a system
+call fails.\\The initial value of \texttt{errno} is zero (i.e.~no
+error).\\When a system call fails it will typically return -1 to
+indicate an error and set \texttt{errno}
+
+\subsection{What about multiple
+threads?}\label{what-about-multiple-threads}
+
+Each thread has it's own copy of \texttt{errno}. This is very useful;
+otherwise an error in one thread would interfere with the error status
+of another thread.
+
+\subsection{\texorpdfstring{When is \texttt{errno} reset to
+zero?}{When is errno reset to zero?}}\label{when-is-errno-reset-to-zero}
+
+It's not unless you specifically reset it to zero! When system calls are
+successful they do \emph{not} reset the value of \texttt{errno}.
+
+This means you should only rely on the value of errno if you know a
+system call has failed (e.g.~it returned -1).
+
+\subsection{\texorpdfstring{What are the gotchas and best practices of
+using
+\texttt{errno}?}{What are the gotchas and best practices of using errno?}}\label{what-are-the-gotchas-and-best-practices-of-using-errno}
+
+Be careful when complex error handling use of library calls or system
+calls that may change the value of \texttt{errno}. In practice it's
+safer to copy the value of errno into a int variable:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Unsafe - the first fprintf may change the value of errno before we use it!}
+\KeywordTok{if} \NormalTok{(-}\DecValTok{1} \NormalTok{== sem_wait(&s)) \{}
+   \NormalTok{fprintf(stderr, }\StringTok{"An error occurred!"}\NormalTok{);}
+   \NormalTok{fprintf(stderr, }\StringTok{"The error value is %d}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, errno);}
+\NormalTok{\}}
+\CommentTok{// Better, copy the value before making more system and library calls}
+\KeywordTok{if} \NormalTok{(-}\DecValTok{1} \NormalTok{== sem_wait(&s)) \{}
+   \DataTypeTok{int} \NormalTok{errno_saved = errno;}
+   \NormalTok{fprintf(stderr, }\StringTok{"An error occurred!"}\NormalTok{);}
+   \NormalTok{fprintf(stderr, }\StringTok{"The error value is %d}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, errno_saved);}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+In a similar vein, if your signal handler makes any system or library
+calls, then it is good practice to save the original value of errno and
+restore the value before returning:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void} \NormalTok{handler(}\DataTypeTok{int} \NormalTok{signal) \{}
+   \DataTypeTok{int} \NormalTok{errno_saved = errno;}
+
+   \CommentTok{// make system calls that might change errno}
+
+   \NormalTok{errno = errno_saved;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How can you print out the string message associated with a
+particular error
+number?}\label{how-can-you-print-out-the-string-message-associated-with-a-particular-error-number}
+
+Use \texttt{strerror} to get a short (English) description of the error
+value
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{char} \NormalTok{*mesg = strerror(errno);}
+\NormalTok{fprintf(stderr, }\StringTok{"An error occurred (errno=%d): %s"}\NormalTok{, errno, mesg);}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How are perror and strerror
+related?}\label{how-are-perror-and-strerror-related}
+
+In previous pages we've used perror to print out the error to standard
+error. Using \texttt{strerror}, we can now write a simple implementation
+of \texttt{perror}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void} \NormalTok{perror(}\DataTypeTok{char} \NormalTok{*what) \{}
+   \NormalTok{fprintf(stderr, }\StringTok{"%s: %s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, what, strerror(errno));}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{What are the gotchas of using
+strerror?}\label{what-are-the-gotchas-of-using-strerror}
+
+Unfortunately \texttt{strerror} is not threadsafe. In other words, two
+threads cannot call it at the same time!
+
+There are two workarounds: Firstly we can use a mutex lock to define a
+critical section and a local buffer. The same mutex should be used by
+all threads in all places that call \texttt{strerror}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pthread_mutex_lock(&m);}
+\DataTypeTok{char} \NormalTok{*result = strerror(errno);}
+\DataTypeTok{char} \NormalTok{*message = malloc(strlen(result) + }\DecValTok{1}\NormalTok{);}
+\NormalTok{strcpy(message, result);}
+\NormalTok{pthread_mutex_unlock(&m);}
+\NormalTok{fprintf(stderr, }\StringTok{"An error occurred (errno=%d): %s"}\NormalTok{, errno, message);}
+\NormalTok{free(message);}
+\end{Highlighting}
+\end{Shaded}
+
+Alternatively use the less portable but thread-safe \texttt{strerror\_r}
+
+\subsection{What is EINTR? What does it mean for sem\_wait? read?
+write?}\label{what-is-eintr-what-does-it-mean-for-semux5fwait-read-write}
+
+Some system calls can be interrupted when a signal (e.g SIGCHLD,
+SIGPIPE,\ldots{}) is delivered to the process. At this point the system
+call may return without performing any action! For example, bytes may
+not have been read/written, semaphore wait may not have waited.
+
+This interruption can be detected by checking the return value and if
+\texttt{errno} is EINTR. In which case the system call should be
+retried. It's common to see the following kind of loop that wraps a
+system call (such as sem\_wait).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{while} \NormalTok{((-}\DecValTok{1} \NormalTok{== systemcall(...)) && (errno == EINTR)) \{ }\CommentTok{/* repeat! */}\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Be careful to write \texttt{==\ EINTR}, not \texttt{=\ EINTR}.
+
+Or, if the result value needs to be used later\ldots{}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{while} \NormalTok{((-}\DecValTok{1} \NormalTok{== (result = systemcall(...))) && (errno == EINTR)) \{ }\CommentTok{/* repeat! */}\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+On Linux,calling \texttt{read} and \texttt{write} to a local disk will
+normally not return with EINTR (instead the function is automatically
+restarted for you). However, calling \texttt{read} and \texttt{write} on
+a file descriptor that corresponds to a network stream \emph{can} return
+with EINTR.
+
+\subsection{Which system calls may be interrupted and need to be
+wrapped?}\label{which-system-calls-may-be-interrupted-and-need-to-be-wrapped}
+
+Use man the page! The man page includes a list of errors (i.e.~errno
+values) that may be set by the system call. A rule of thumb is `slow'
+(blocking) calls (e.g.~writing to a socket) may be interrupted but fast
+non-blocking calls (e.g.~pthread\_mutex\_lock) will not.
+
+From the linux signal 7 man page.
+
+``If a signal handler is invoked while a system call or library function
+call is blocked, then either:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  the call is automatically restarted after the signal handler returns;
+  or
+\item
+  the call fails with the error EINTR.\\Which of these two behaviors
+  occurs depends on the interface and whether or not the signal handler
+  was established using the SA\_RESTART flag (see sigaction(2)). The
+  details vary across UNIX systems; below, the details for Linux.
+\end{itemize}
+
+If a blocked call to one of the following interfaces is interrupted by a
+signal handler, then the call will be automatically restarted after the
+signal handler returns if the SA\_RESTART flag was used; otherwise the
+call will fail with the error EINTR:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  read(2), readv(2), write(2), writev(2), and ioctl(2) calls on ``slow''
+  devices. A ``slow'' device is one where the I/O call may block for an
+  indefinite time, for example, a terminal, pipe, or socket. (A disk is
+  not a slow device according to this definition.) If an I/O call on a
+  slow device has already transferred some data by the time it is
+  interrupted by a signal handler, then the call will return a success
+  status (normally, the number of bytes transferred).\\"
+\end{itemize}
+
+Note, it is easy to believe that setting `SA\_RESTART' flag is
+sufficient to make this whole problem dissappear. Unfortunately that's
+not true: there are still system calls that may return early and set
+\texttt{EINTR}! See signal(7) for details
+-\\{[}{[}signal(7)\textbar{}\url{https://angrave.github.io/sysassets/man_pages/html/man7/signal.7.html}{]}{]}
