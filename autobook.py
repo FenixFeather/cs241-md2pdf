@@ -22,28 +22,33 @@ class SubChapter(Chapter):
 
 
 def process_book(book, src_dir, out_dir):
+
 	for chapter in book:
 		is_first_section = True
 		print chapter.chapter_name
 		for sub_chapter in chapter.sub_chapters:
 			md_path = src_dir + sub_chapter.md_name + ".md"
 			tex_path = out_dir + sub_chapter.md_name + ".tex"
-			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes -o \"%s\" \"%s\"" % (tex_path, md_path) 
+			if os.path.isfile(md_path):
+				print("[IO Error] Skipping %s\n" % (md_path))
+				continue
+
+			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes \"%s\" -o  \"%s\"" % (md_path, tex_path) 
 			os.system(pandoc_command)
 			
 			# Replace subsection -> subsubsection, then section -> subsection
 			tex_file = open(tex_path, "r+")
-			tex_content = file_tex.read()
+			tex_content = tex_file.read()
 			tex_content.replace("\subsection", "\subsubsection")
 			tex_content.replace("\section", "\subsection")
-		    tex_file.seek(0) # assumes replaced content is longer so that write() will replace entire file
+			tex_file.seek(0) # assumes replaced content is longer so that write() will replace entire file
 
-		    output = ""
-		    if is_first_section: # insert chapter name before the 1st section
-		    	output += "\chapter{%s}" % chapter.chapter_name
-		    	is_first_section = False
-		   	else:
-		   		output += replace_chap_with_subchap(tex_content)
+			output = ""
+			if is_first_section: # insert chapter name before the 1st section
+				output += "\chapter{%s}" % chapter.chapter_name
+				is_first_section = False
+			else:
+				output += tex_content
 
 			tex_file.write(output)
 			tex_file.close()
