@@ -103,7 +103,7 @@ def main():
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
 	print "Processing book"
-	process_book(book, "./md_source/", "./tex_source/")
+	process_book(book, "./md_testing/", "./tex_source/")
 
 	generate_base_tex(book, "base.tex", "./tex_source/base.tex")
 	
