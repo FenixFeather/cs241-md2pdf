@@ -23,6 +23,7 @@ class SubChapter(Chapter):
 
 def process_book(book, src_dir, out_dir):
 	for chapter in book:
+		is_first_section = True
 		print chapter.chapter_name
 		for sub_chapter in chapter.sub_chapters:
 			md_path = src_dir + sub_chapter.md_name + ".md"
@@ -35,7 +36,16 @@ def process_book(book, src_dir, out_dir):
 			tex_content = file_tex.read()
 			tex_content.replace("\subsection", "\subsubsection")
 			tex_content.replace("\section", "\subsection")
-			tex_file.write(replace_chap_with_subchap(tex_content)
+		    tex_file.seek(0) # assumes replaced content is longer so that write() will replace entire file
+
+		    output = ""
+		    if is_first_section: # insert chapter name before the 1st section
+		    	output += "\chapter{%s}" % chapter.chapter_name
+		    	is_first_section = False
+		   	else:
+		   		output += replace_chap_with_subchap(tex_content)
+
+			tex_file.write(output)
 			tex_file.close()
 
 
