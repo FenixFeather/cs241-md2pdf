@@ -1,0 +1,259 @@
+Big idea: Forget names of files: The `inode' is the file.
+
+It is common to think of the file name as the `actual' file. It's not!
+Instead consider the inode as the file. The inode holds the
+meta-information (last accessed, ownership, size) and points to the disk
+blocks used to hold the file contents.
+
+\subsection{So\ldots{} How do we implement a
+directory?}\label{so-how-do-we-implement-a-directory}
+
+A directory is just a mapping of names to inode numbers.\\POSIX provides
+a small set of functions to read the filename and inode number for each
+entry (see below)
+
+\subsection{How can I find the inode number of a
+file?}\label{how-can-i-find-the-inode-number-of-a-file}
+
+From a shell, use \texttt{ls} with the \texttt{-i} option
+
+\begin{verbatim}
+$ ls -i
+12983989 dirlist.c      12984068 sandwhich.c
+\end{verbatim}
+
+From C, call one of the stat functions (introduced below).
+
+\subsection{How do I find out meta-information about a file (or
+directory)?}\label{how-do-i-find-out-meta-information-about-a-file-or-directory}
+
+Use the stat calls. For example, to find out when my `notes.txt' file
+was last accessed -
+
+\begin{Shaded}
+\begin{Highlighting}[]
+   \KeywordTok{struct} \NormalTok{stat s;}
+   \NormalTok{stat(}\StringTok{"notes.txt"}\NormalTok{, & s);}
+   \NormalTok{printf(}\StringTok{"Last accessed %s"}\NormalTok{, ctime(s.st_atime));}
+\end{Highlighting}
+\end{Shaded}
+
+There are actually three versions of \texttt{stat};
+
+\begin{Shaded}
+\begin{Highlighting}[]
+       \DataTypeTok{int} \NormalTok{stat(}\DataTypeTok{const} \DataTypeTok{char} \NormalTok{*path, }\KeywordTok{struct} \NormalTok{stat *buf);}
+       \DataTypeTok{int} \NormalTok{fstat(}\DataTypeTok{int} \NormalTok{fd, }\KeywordTok{struct} \NormalTok{stat *buf);}
+       \DataTypeTok{int} \NormalTok{lstat(}\DataTypeTok{const} \DataTypeTok{char} \NormalTok{*path, }\KeywordTok{struct} \NormalTok{stat *buf);}
+\end{Highlighting}
+\end{Shaded}
+
+For example you can use \texttt{fstat} to find out the meta-information
+about a file if you already have an file descriptor associated with that
+file
+
+\begin{Shaded}
+\begin{Highlighting}[]
+   \NormalTok{FILE *file = fopen(}\StringTok{"notes.txt"}\NormalTok{, }\StringTok{"r"}\NormalTok{);}
+   \DataTypeTok{int} \NormalTok{fd = fileno(file); }\CommentTok{/* Just for fun - extract the file descriptor from a C FILE struct */}
+   \KeywordTok{struct} \NormalTok{stat s;}
+   \NormalTok{fstat(fd, & s);}
+   \NormalTok{printf(}\StringTok{"Last accessed %s"}\NormalTok{, ctime(s.st_atime));}
+\end{Highlighting}
+\end{Shaded}
+
+The third call `lstat' we will discuss when we introduce symbolic links.
+
+In addition to access,creation, and modified times, the stat structure
+includes the inode number, length of the file and owner information.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{struct} \NormalTok{stat \{}
+               \NormalTok{dev_t     st_dev;     }\CommentTok{/* ID of device containing file */}
+               \NormalTok{ino_t     st_ino;     }\CommentTok{/* inode number */}
+               \NormalTok{mode_t    st_mode;    }\CommentTok{/* protection */}
+               \NormalTok{nlink_t   st_nlink;   }\CommentTok{/* number of hard links */}
+               \NormalTok{uid_t     st_uid;     }\CommentTok{/* user ID of owner */}
+               \NormalTok{gid_t     st_gid;     }\CommentTok{/* group ID of owner */}
+               \NormalTok{dev_t     st_rdev;    }\CommentTok{/* device ID (if special file) */}
+               \NormalTok{off_t     st_size;    }\CommentTok{/* total size, in bytes */}
+               \NormalTok{blksize_t st_blksize; }\CommentTok{/* blocksize for file system I/O */}
+               \NormalTok{blkcnt_t  st_blocks;  }\CommentTok{/* number of 512B blocks allocated */}
+               \NormalTok{time_t    st_atime;   }\CommentTok{/* time of last access */}
+               \NormalTok{time_t    st_mtime;   }\CommentTok{/* time of last modification */}
+               \NormalTok{time_t    st_ctime;   }\CommentTok{/* time of last status change */}
+           \NormalTok{\};}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How do I list the contents of a directory
+?}\label{how-do-i-list-the-contents-of-a-directory}
+
+Let's write our own version of `ls' to list the contents of a directory.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <dirent.h>}
+\OtherTok{#include <stdlib.h>}
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char} \NormalTok{**argv) \{}
+    \KeywordTok{if}\NormalTok{(argc == }\DecValTok{1}\NormalTok{) \{}
+        \NormalTok{printf(}\StringTok{"Usage: %s [directory]}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, *argv);}
+        \NormalTok{exit(}\DecValTok{0}\NormalTok{);}
+    \NormalTok{\}}
+    \KeywordTok{struct} \NormalTok{dirent *dp;}
+    \NormalTok{DIR *dirp = opendir(argv[}\DecValTok{1}\NormalTok{]);}
+    \KeywordTok{while} \NormalTok{((dp = readdir(dirp)) != NULL) \{}
+        \NormalTok{puts(dp->d_name);}
+    \NormalTok{\}}
+
+    \NormalTok{closedir(dirp);}
+    \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How do I read the contents of a
+directory?}\label{how-do-i-read-the-contents-of-a-directory}
+
+Ans: Use opendir readdir closedir\\For example, here's a very simple
+implementation of `ls' to list the contents of a directory.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <dirent.h>}
+\OtherTok{#include <stdlib.h>}
+\DataTypeTok{int} \NormalTok{main(}\DataTypeTok{int} \NormalTok{argc, }\DataTypeTok{char} \NormalTok{**argv) \{}
+    \KeywordTok{if}\NormalTok{(argc ==}\DecValTok{1}\NormalTok{) \{}
+        \NormalTok{printf(}\StringTok{"Usage: %s [directory]}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, *argv);}
+        \NormalTok{exit(}\DecValTok{0}\NormalTok{);}
+    \NormalTok{\}}
+    \KeywordTok{struct} \NormalTok{dirent *dp;}
+    \NormalTok{DIR *dirp = opendir(argv[}\DecValTok{1}\NormalTok{]);}
+    \KeywordTok{while} \NormalTok{((dp = readdir(dirp)) != NULL) \{}
+        \NormalTok{printf(}\StringTok{"%s %lu}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, dp-> d_name, (}\DataTypeTok{unsigned} \DataTypeTok{long}\NormalTok{)dp-> d_ino );}
+    \NormalTok{\}}
+
+    \NormalTok{closedir(dirp);}
+    \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How do I check to see if a file is in the current
+directory?}\label{how-do-i-check-to-see-if-a-file-is-in-the-current-directory}
+
+For example, to see if a particular directory includes a file (or
+filename) `name', we might write the following code. (Hint: Can you spot
+the bug?)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{exists(}\DataTypeTok{char} \NormalTok{*directory, }\DataTypeTok{char} \NormalTok{*name)  \{}
+    \KeywordTok{struct} \NormalTok{dirent *dp;}
+    \NormalTok{DIR *dirp = opendir(directory);}
+    \KeywordTok{while} \NormalTok{((dp = readdir(dirp)) != NULL) \{}
+        \NormalTok{puts(dp->d_name);}
+        \KeywordTok{if} \NormalTok{(!strcmp(dp->d_name, name)) \{}
+        \KeywordTok{return} \DecValTok{1}\NormalTok{; }\CommentTok{/* Found */}
+        \NormalTok{\}}
+    \NormalTok{\}}
+    \NormalTok{closedir(dirp);}
+    \KeywordTok{return} \DecValTok{0}\NormalTok{; }\CommentTok{/* Not Found */}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The above code has a subtle bug: It leaks resources! If a matching
+filename is found then `closedir' is never called as part of the early
+return. Any file descriptors opened, and any memory allocated, by
+opendir are never released. This means eventually the process will run
+out of resources and an \texttt{open} or \texttt{opendir} call will
+fail.
+
+The fix is to ensure we free up resources in every possible code-path.
+In the above code this means calling \texttt{closedir} before
+\texttt{return\ 1}. Forgetting to release resources is a common C
+programming bug because there is no support in the C lanaguage to ensure
+resources are always released with all codepaths.
+
+\subsection{An aside - A System programming pattern to clean up
+resources - goto considered
+useful!}\label{an-aside---a-system-programming-pattern-to-clean-up-resources---goto-considered-useful}
+
+Note If C supported exception handling this discussion would be
+unnecessary.\\Imagine your function required several temporary resources
+that need to be freed before returning.\\How can we write readable code
+that correctly frees resources under all code paths? Some system
+programs use \texttt{goto} to jump forward into the clean up code, using
+the following pattern:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{f() \{}
+   \NormalTok{Acquire resource r1}
+   \KeywordTok{if}\NormalTok{(...) }\KeywordTok{goto} \NormalTok{clean_up_r1}
+   \NormalTok{Acquire resource r2}
+   \KeywordTok{if}\NormalTok{(...) }\KeywordTok{goto} \NormalTok{clean_up_r2}
+
+   \NormalTok{perform work}
+\NormalTok{clean_up_r2:}
+   \NormalTok{clean up r2}
+\NormalTok{clean_up_r1:}
+   \NormalTok{clean up r1}
+   \KeywordTok{return} \NormalTok{result}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Whether this is a good thing or not has led to long rigorous debates
+that have generally helped system programmers stay warm during the cold
+winter months. Are there alternatives? Yes! For example using
+conditional logic, breaking out of do-while loops and writing secondary
+functions that perform the innermost work. However all choices are
+problematic and cumbersome as we are attempting to shoe-horn in
+exception handling in a language that has no inbuilt support for it.
+
+\subsection{What are the gotcha's of using readdir? For example to
+recursively search
+directories?}\label{what-are-the-gotchas-of-using-readdir-for-example-to-recursively-search-directories}
+
+There are two main gotchas and one consideration:\\The \texttt{readdir}
+function returns ``.'' (current directory) and ``..'' (parent
+directory). If you are looking for sub-directories, you need to
+explicitly exclude these directories.
+
+For many applications it's reasonable to check the current directory
+first before recursively searching sub-directories. This can be achieved
+by storing the results in a linked list, or resetting the directory
+struct to restart from the beginning.
+
+One final note of caution: \texttt{readdir} is not thread-safe! For
+multi-threaded searches use \texttt{readdir\_r} which requires the
+caller to pass in the address of an existing dirent struct.
+
+See the man page of readdir for more details.
+
+\subsection{How I do determine if a directory entry is a
+directory?}\label{how-i-do-determine-if-a-directory-entry-is-a-directory}
+
+Ans: Use \texttt{S\_ISDIR} to check the mode bits stored in the stat
+structure
+
+And to check if a file is regular file use \texttt{S\_ISREG},
+
+\begin{Shaded}
+\begin{Highlighting}[]
+   \KeywordTok{struct} \NormalTok{stat s;}
+   \KeywordTok{if} \NormalTok{(}\DecValTok{0} \NormalTok{== stat(name, &s)) \{}
+      \NormalTok{printf(}\StringTok{"%s "}\NormalTok{, name);}
+      \KeywordTok{if} \NormalTok{(S_ISDIR( s.st_mode)) puts(}\StringTok{"is a directory"}\NormalTok{);}
+      \KeywordTok{if} \NormalTok{(S_ISREG( s.st_mode)) puts(}\StringTok{"is a regular file"}\NormalTok{);}
+   \NormalTok{\} }\KeywordTok{else} \NormalTok{\{}
+      \NormalTok{perror(}\StringTok{"stat failed - are you sure I can read this file's meta data?"}\NormalTok{);}
+   \NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+

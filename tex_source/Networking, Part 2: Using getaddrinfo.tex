@@ -1,0 +1,194 @@
+\subsection{\texorpdfstring{How do I use \texttt{getaddrinfo} to convert
+the hostname into an IP
+address?}{How do I use getaddrinfo to convert the hostname into an IP address?}}\label{how-do-i-use-getaddrinfo-to-convert-the-hostname-into-an-ip-address}
+
+The function \texttt{getaddrinfo} can convert a human readable domain
+name (e.g. \texttt{www.illinois.edu}) into an IPv4 and IPv6 address. In
+fact it will return a linked-list of addrinfo structs:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{struct} \NormalTok{addrinfo \{}
+    \DataTypeTok{int}              \NormalTok{ai_flags;}
+    \DataTypeTok{int}              \NormalTok{ai_family;}
+    \DataTypeTok{int}              \NormalTok{ai_socktype;}
+    \DataTypeTok{int}              \NormalTok{ai_protocol;}
+    \NormalTok{socklen_t        ai_addrlen;}
+    \KeywordTok{struct} \NormalTok{sockaddr *ai_addr;}
+    \DataTypeTok{char}            \NormalTok{*ai_canonname;}
+    \KeywordTok{struct} \NormalTok{addrinfo *ai_next;}
+\NormalTok{\};}
+\end{Highlighting}
+\end{Shaded}
+
+It's very easy to use. For example, suppose you wanted to find out the
+numeric IPv4 address of a webserver at www.bbc.com. We do this in two
+stages. First use getaddrinfo to build a linked-list of possible
+connections. Secondly use \texttt{getnameinfo} to convert the binary
+address into a readable form.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{#include <stdio.h>}
+\OtherTok{#include <stdlib.h>}
+\OtherTok{#include <sys/types.h>}
+\OtherTok{#include <sys/socket.h>}
+\OtherTok{#include <netdb.h>}
+
+\KeywordTok{struct} \NormalTok{addrinfo hints, *infoptr; }\CommentTok{// So no need to use memset global variables}
+
+\DataTypeTok{int} \NormalTok{main() \{}
+  \NormalTok{hints.ai_family = AF_INET; }\CommentTok{// AF_INET means IPv4 only addresses}
+
+  \DataTypeTok{int} \NormalTok{result = getaddrinfo(}\StringTok{"www.bbc.com"}\NormalTok{, NULL, &hints, &infoptr);}
+  \KeywordTok{if} \NormalTok{(result) \{}
+    \NormalTok{fprintf(stderr, }\StringTok{"getaddrinfo: %s}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{, gai_strerror(result));}
+    \NormalTok{exit(}\DecValTok{1}\NormalTok{);}
+  \NormalTok{\}}
+
+  \KeywordTok{struct} \NormalTok{addrinfo *p;}
+  \DataTypeTok{char} \NormalTok{host[}\DecValTok{256}\NormalTok{],service[}\DecValTok{256}\NormalTok{];}
+
+  \KeywordTok{for}\NormalTok{(p = infoptr; p != NULL; p = p->ai_next) \{}
+
+    \NormalTok{getnameinfo(p->ai_addr, p->ai_addrlen, host, }\KeywordTok{sizeof}\NormalTok{(host), service, }\KeywordTok{sizeof}\NormalTok{(service), NI_NUMERICHOST);}
+    \NormalTok{puts(host);}
+  \NormalTok{\}}
+
+  \NormalTok{freeaddrinfo(infoptr);}
+  \KeywordTok{return} \DecValTok{0}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Typical output:
+
+\begin{verbatim}
+212.58.244.70
+212.58.244.71
+\end{verbatim}
+
+\subsection{How is www.cs.illinois.edu converted into an IP
+address?}\label{how-is-www.cs.illinois.edu-converted-into-an-ip-address}
+
+Magic! No seriously, a system called ``DNS'' (Domain Name Service) is
+used. If a machine does not hold the answer locally then it sends a UDP
+packet to a local DNS server. This server in turn may query other
+upstream DNS servers.
+
+\subsection{Is DNS secure?}\label{is-dns-secure}
+
+DNS by itself is fast but not secure. DNS requests are not encrypted and
+susceptible to `man-in-the-middle' attacks. For example, a coffee shop
+internet connection could easily subvert your DNS requests and send back
+different IP addresses for a particular domain
+
+\subsection{How do I connect to a TCP server (e.g.~web
+server?)}\label{how-do-i-connect-to-a-tcp-server-e.g.web-server}
+
+TODO\\There are three basic system calls you need to connect to a remote
+machine:
+
+\begin{verbatim}
+getaddrinfo -- Determine the remote addresses of a remote host
+socket  -- Create a socket
+connect  -- Connect to the remote host using the socket and address information
+\end{verbatim}
+
+The \texttt{getaddrinfo} call if successful, creates a linked-list of
+\texttt{addrinfo} structs and sets the given pointer to point to the
+first one.
+
+The socket call creates an outgoing socket and returns a descriptor
+(sometimes called a `file descriptor') that can be used with
+\texttt{read} and \texttt{write} etc.In this sense it is the network
+analog of \texttt{open} that opens a file stream - except that we
+haven't connected the socket to anything yet!
+
+Finally the connect call attempts the connection to the remote machine.
+We pass the original socket descriptor and also the socket address
+information which is stored inside the addrinfo structure. There are
+different kinds of socket address structures (e.g.~IPv4 vs IPv6) which
+can require more memory. So in addition to passing the pointer, the size
+of the structure is also passed:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Pull out the socket address info from the addrinfo struct:}
+\NormalTok{connect(sockfd, p->ai_addr, p->ai_addrlen)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{How do I free the memory allocated for the linked-list of
+addrinfo
+structs?}\label{how-do-i-free-the-memory-allocated-for-the-linked-list-of-addrinfo-structs}
+
+As part of the clean up code call \texttt{freeaddrinfo} on the top-most
+\texttt{addrinfo} struct:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void} \NormalTok{freeaddrinfo(}\KeywordTok{struct} \NormalTok{addrinfo *ai);}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{If getaddrinfo fails can I use
+\texttt{strerror} to print out the
+error?}{If getaddrinfo fails can I use strerror to print out the error?}}\label{if-getaddrinfo-fails-can-i-use-strerror-to-print-out-the-error}
+
+No. Error handling with \texttt{getaddrinfo} is a little different:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  The return value \emph{is} the error code (i.e.~don't use
+  \texttt{errno})
+\item
+  Use \texttt{gai\_strerror} to get the equivalent short English error
+  text:
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{result = getaddrinfo(...);}
+\KeywordTok{if}\NormalTok{(result) \{ }
+   \DataTypeTok{char} \NormalTok{*mesg = gai_strerror(result); }
+   \NormalTok{...}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Can I request only IPv4 or IPv6 connection? TCP
+only?}\label{can-i-request-only-ipv4-or-ipv6-connection-tcp-only}
+
+Yes! Use the addrinfo structure that is passed into \texttt{getaddrinfo}
+to define the kind of connection you'd like.
+
+For example, to specify stream-based protocols over IPv6:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{struct} \NormalTok{addrinfo hints;}
+\NormalTok{memset(hints, }\DecValTok{0}\NormalTok{, }\KeywordTok{sizeof}\NormalTok{(hints));}
+
+\NormalTok{hints.ai_family = AF_INET6; }\CommentTok{// Only want IPv6 (use AF_INET for IPv4)}
+\NormalTok{hints.ai_socktype = SOCK_STREAM; }\CommentTok{// Only want stream-based connection}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{What about code examples that use
+\texttt{gethostbyname}?}{What about code examples that use gethostbyname?}}\label{what-about-code-examples-that-use-gethostbyname}
+
+The old function \texttt{gethostbyname} is deprecated; it's the old way
+convert a host name into an IP address. The port address still needs to
+be manually set using htons function. It's much easier to write code to
+support IPv4 AND IPv6 using the newer \texttt{getaddrinfo}
+
+\subsection{Is it that easy!?}\label{is-it-that-easy}
+
+Yes and no. It's easy to create a simple TCP client - however network
+communications offers many different levels of abstraction and several
+attributes and options that can be set at each level of abstraction (for
+example we haven't talked about \texttt{setsockopt} which can manipulate
+options for the socket).\\For more information
+see\\{[}{[}\url{http://www.beej.us/guide/bgnet/output/html/multipage/getaddrinfoman.html}{]}{]}

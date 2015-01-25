@@ -1,0 +1,104 @@
+\subsection{The Hitchhiker's Guide to Debugging C
+Programs}\label{the-hitchhikers-guide-to-debugging-c-programs}
+
+Feel free to add anything that you found helpful in debugging C programs
+including but not limited to, debugger usage, recognizing common error
+types, gotchas, and effective googling tips.
+
+\begin{enumerate}
+\item
+  Make your code modular using helper functions. If there is a repeated
+  task (getting the pointers to contiguous blocks in MP2 for example),
+  make them helper functions. And make sure each function does one thing
+  very well, so that you don't have to debug twice.
+\item
+  Use assertions to make sure your code works up to a certain point --
+  and importantly, to make sure you don't break it later. For example,
+  if your data structure is a doubly linked list, you can do something
+  like, assert(node-\textgreater{}size ==
+  node-\textgreater{}next-\textgreater{}prev-\textgreater{}size) to
+  assert that the next node has a pointer to the current node. You can
+  also check the pointer is pointing to an expected range of memory
+  address, not null, -\textgreater{}size is reasonable etc.\\The NDEBUG
+  macro will disable all assertions, so don't forget to set that once
+  you finish debugging.
+  \url{http://www.cplusplus.com/reference/cassert/assert/}
+\end{enumerate}
+
+\subsubsection{GDB}\label{gdb}
+
+Introduction: \url{http://www.cs.cmu.edu/~gilpin/tutorial/}
+
+\paragraph{Setting breakpoints
+programmatically}\label{setting-breakpoints-programmatically}
+
+A very useful trick when debugging complex C programs with GDB is
+setting breakpoints in the source code.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{main() \{}
+    \DataTypeTok{int} \NormalTok{val = }\DecValTok{1}\NormalTok{;}
+    \NormalTok{val = }\DecValTok{42}\NormalTok{;}
+    \NormalTok{asm(}\StringTok{"int $3"}\NormalTok{); }\CommentTok{// set a breakpoint here}
+    \NormalTok{val = }\DecValTok{7}\NormalTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+$ gcc main.c -g -o main && ./main
+(gdb) r
+[...]
+Program received signal SIGTRAP, Trace/breakpoint trap.
+main () at main.c:6
+6       val = 7;
+(gdb) p val
+$1 = 42
+\end{verbatim}
+
+\paragraph{Checking memory content}\label{checking-memory-content}
+
+\url{http://www.delorie.com/gnu/docs/gdb/gdb_56.html}
+
+For example,
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{int} \NormalTok{main() \{}
+    \DataTypeTok{char} \NormalTok{bad_string[}\DecValTok{3}\NormalTok{] = \{'C', 'a', 't'\};}
+    \NormalTok{printf(}\StringTok{"%s"}\NormalTok{, bad_string);}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+$ gcc main.c -g -o main && ./main
+$ Cat ZVQ� $
+\end{verbatim}
+
+\begin{verbatim}
+(gdb) l
+1   #include <stdio.h>
+2   int main() {
+3       char bad_string[3] = {'C', 'a', 't'};
+4       printf("%s", bad_string);
+5   }
+(gdb) b 4
+Breakpoint 1 at 0x100000f57: file main.c, line 4.
+(gdb) r
+[...]
+Breakpoint 1, main () at main.c:4
+4       printf("%s", bad_string);
+(gdb) x/16xb bad_string
+0x7fff5fbff9cd: 0x63    0x61    0x74    0xe0    0xf9    0xbf    0x5f    0xff
+0x7fff5fbff9d5: 0x7f    0x00    0x00    0xfd    0xb5    0x23    0x89    0xff
+\end{verbatim}
+
+Here, by using the \texttt{x} command with parameters \texttt{16xb}, we
+can see that starting at memory address \texttt{0x7fff5fbff9c} (value of
+\texttt{bad\_string}), printf would actually see the following sequence
+of bytes as a string because we provided a malformed string without a
+null terminator.
+
+\texttt{0x43\ 0x61\ 0x74\ 0xe0\ 0xf9\ 0xbf\ 0x5f\ 0xff\ 0x7f\ 0x00}

@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
 from bs4 import BeautifulSoup,SoupStrainer
 import urllib2
 import re
 import os, sys
+import glob
 import platform
 
 
@@ -28,7 +31,22 @@ class SubChapter(Chapter):
 			return self._md_name.replace(":", "")
 		else:
 			return self._md_name
-
+def clone_wiki(url):
+	clone_command = "git clone "+url
+	os.system(clone_command)
+	files = glob.glob('SystemProgramming.wiki/*.md')
+	print files
+	for file in files:
+		print file,file.replace("-"," ") 
+		os.rename(file, file.replace("-"," "))
+def add_includes(book, base_tex_path):
+	"""Add the includes to the base tex file based on the tex files in base.tex."""
+	base_tex = open(base_tex_path, 'r')
+	base_tex_text = base_tex.read()
+	base_tex.close()
+	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{{0}}}}}".format(subchapter.md_name)
+														 for subchapter in chapter.sub_chapters]
+														 for chapter in book], [])))
 def process_book(book, src_dir, out_dir):
 
 	for chapter in book:
@@ -37,7 +55,7 @@ def process_book(book, src_dir, out_dir):
 		for sub_chapter in chapter.sub_chapters:
 			md_path = src_dir + sub_chapter.md_name + ".md"
 			tex_path = out_dir + sub_chapter.md_name + ".tex"
-			if os.path.isfile(md_path):
+			if not os.path.isfile(md_path):
 				print("[IO Error] Skipping %s\n" % (md_path))
 				continue
 
@@ -68,9 +86,7 @@ def main():
 	soup = BeautifulSoup(html)
 	table_of_contents = soup.find(id="wiki-body")
 	links = table_of_contents.find_all('a',class_="internal present")
-	# for link in links:
-	# 	print link
-
+	clone_wiki("https://github.com/angrave/SystemProgramming.wiki.git")
 	book = []
 	found = []
 	regex = re.compile("[\w\s]+,[\w\s]+:[\w\s]+")
@@ -95,8 +111,20 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	process_book(book, "./", "./tex_source/")
+	print "Processing book"
+	process_book(book, "SystemProgramming.wiki/", "tex_source/")
     
+	print "Adding includes"
+	base_modified = open("./tex_source/base.tex", 'w')
+
+	print add_includes(book, "base.tex")
+
+	base_modified.write(add_includes(book, "base.tex"))
+
+	base_modified.close()
+
+	# print "Compiling"
+	# os.system("pdflatex ./tex_source/base.tex")
 if __name__ == '__main__':
     main()
 
