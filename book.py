@@ -1,4 +1,5 @@
 import platform
+import autobook
 
 class Chapter(object):
 	"""docstring for Chapter"""
@@ -40,7 +41,7 @@ def main():
 
 	chapter1 = Chapter("C Programming", book)
 	chapter1.add_subchapters(
-		SubChapter("Introduction", "C Programming"),
+		# SubChapter("Introduction", "C Programming,-Part-1--Introduction"),
 		SubChapter("Text Input And Output", "C Programming, Part 2: Text Input And Output"),
 		SubChapter("Common Gotchas", "C Programming, Part 3: Common Gotchas"),
 		SubChapter("Debugging", "C Programming, Part 4: Debugging")
@@ -72,7 +73,7 @@ def main():
 		SubChapter("Working with Mutexes And Semaphores", "Synchronization, Part 3: Working with Mutexes And Semaphores"),
 		SubChapter("The Critical Section Problem", "Synchronization, Part 4: The Critical Section Problem"),
 		SubChapter("Condition Variables", "Synchronization, Part 5: Condition Variables"),
-		SubChapter("Implementing a barrier", "Synchronization, Part 6: Implementing a barrier"),
+		# SubChapter("Implementing a barrier", "Synchronization, Part 6: Implementing a barrier"),
 		SubChapter("The Reader Writer Problem", "Synchronization, Part 7: The Reader Writer Problem"),
 		SubChapter("Ring Buffer Example", "Synchronization, Part 8: Ring Buffer Example"),
 		SubChapter("The Reader Writer Problem (part 2)", "Synchronization, Part 9: The Reader Writer Problem (part 2)")
@@ -132,7 +133,17 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	print add_includes(book, "base.tex")
+	print "Processing book"
+	autobook.process_book(book, "./md_source/", "./tex_source/")
+
+	print "Adding includes"
+	base_modified = open("./tex_source/base.tex", 'w')
+
+	base_modified.write(add_includes(book, "base.tex"))
+
+	print "Compiling"
+	os.system("pdflatex ./tex_source/base.tex")
 	
 if __name__ == '__main__':
+	
 	main()

@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup,SoupStrainer
 import urllib2
 import re
 import os, sys
+import platform
 
 
 class Chapter(object):
@@ -16,10 +17,17 @@ class Chapter(object):
 			self.sub_chapters.append(arg)
 
 class SubChapter(Chapter):
-	def __init__(self, sub_chapter_name, md_name):
+	def __init__(self, sub_chapter_name, md_name, windows=None):
 		self.sub_chapter_name = sub_chapter_name
-		self.md_name = md_name
-
+		self._md_name = md_name
+		self.windows = windows if windows is not None else platform.system() == "Windows"
+		
+	@property
+	def md_name(self):
+		if self.windows:
+			return self._md_name.replace(":", "")
+		else:
+			return self._md_name
 
 def process_book(book, src_dir, out_dir):
 	for chapter in book:
@@ -28,22 +36,22 @@ def process_book(book, src_dir, out_dir):
 		for sub_chapter in chapter.sub_chapters:
 			md_path = src_dir + sub_chapter.md_name + ".md"
 			tex_path = out_dir + sub_chapter.md_name + ".tex"
-			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes -o \"%s\" \"%s\"" % (md_path, tex_path) 
+			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes -o \"%s\" \"%s\"" % (tex_path, md_path) 
 			os.system(pandoc_command)
 			
 			# Replace subsection -> subsubsection, then section -> subsection
 			tex_file = open(tex_path, "r+")
-			tex_content = file_tex.read()
+			tex_content = tex_file.read()
 			tex_content.replace("\subsection", "\subsubsection")
 			tex_content.replace("\section", "\subsection")
-		    tex_file.seek(0) # assumes replaced content is longer so that write() will replace entire file
+			tex_file.seek(0) # assumes replaced content is longer so that write() will replace entire file
 
-		    output = ""
-		    if is_first_section: # insert chapter name before the 1st section
-		    	output += "\chapter{%s}" % chapter.chapter_name
-		    	is_first_section = False
+			output = ""
+			if is_first_section: # insert chapter name before the 1st section
+				output += "\chapter{%s}" % chapter.chapter_name
+				is_first_section = False
 		   	else:
-		   		output += replace_chap_with_subchap(tex_content)
+		   		output += (tex_content)
 
 			tex_file.write(output)
 			tex_file.close()
@@ -82,6 +90,8 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	process_book(book, "./", "./tex_out/")
+	process_book(book, "./", "./tex_source/")
+    
+if __name__ == '__main__':
+    main()
 
-main()
