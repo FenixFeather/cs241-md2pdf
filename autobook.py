@@ -44,7 +44,7 @@ def add_includes(book, base_tex_path):
 	base_tex = open(base_tex_path, 'r')
 	base_tex_text = base_tex.read()
 	base_tex.close()
-	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{{0}}}}}".format(subchapter.md_name)
+	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{\"{0}\"}}}}".format(subchapter.md_name)
 														 for subchapter in chapter.sub_chapters]
 														 for chapter in book], [])))
 def process_book(book, src_dir, out_dir):
