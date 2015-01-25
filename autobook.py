@@ -71,10 +71,11 @@ def process_book(book, src_dir, out_dir):
 
 			output = ""
 			if is_first_section: # insert chapter name before the 1st section
-				output += "\chapter{%s}" % chapter.chapter_name
+				output += "\chapter{%s}\n" % chapter.chapter_name
 				is_first_section = False
-			else:
-				output += tex_content
+
+			output += "\section{{{0}}}\n".format(sub_chapter.sub_chapter_name)
+			output += tex_content
 
 			tex_file.write(output)
 			tex_file.close()
