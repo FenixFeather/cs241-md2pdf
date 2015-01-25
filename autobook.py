@@ -80,6 +80,21 @@ def process_book(book, src_dir, out_dir):
 			tex_file.close()
 
 
+def compile_latex(tex_path):
+	print "Compiling"
+	for ii in xrange(0,2):
+		os.system("pdflatex -output-directory {0} -interaction nonstopmode {1}".format(os.path.dirname(tex_path), tex_path))
+
+def generate_base_tex(book, base_template_path, destination_path):
+	print "Adding includes"
+	base_modified = open(destination_path, 'w')
+
+	print add_includes(book, base_template_path)
+
+	base_modified.write(add_includes(book, base_template_path))
+
+	base_modified.close()
+	
 def main():
 	response = urllib2.urlopen("https://github.com/angrave/SystemProgramming/wiki")
 	html = response.read()
@@ -113,18 +128,10 @@ def main():
 
 	print "Processing book"
 	process_book(book, "SystemProgramming.wiki/", "tex_source/")
-    
-	print "Adding includes"
-	base_modified = open("./tex_source/base.tex", 'w')
 
-	print add_includes(book, "base.tex")
-
-	base_modified.write(add_includes(book, "base.tex"))
-
-	base_modified.close()
-
-	# print "Compiling"
-	# os.system("pdflatex ./tex_source/base.tex")
+	generate_base_tex(book, "base.tex", "./tex_source/base.tex")
+	
+	compile_latex("./tex_source/base.tex")
 if __name__ == '__main__':
-    main()
+	main()
 

@@ -1,5 +1,7 @@
+#/usr/bin/env python
+
 import platform
-import autobook
+from autobook import *
 import os, sys
 
 def main():
@@ -101,15 +103,22 @@ def main():
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
 	print "Processing book"
-	autobook.process_book(book, "./md_source/", "./tex_source/")
+	process_book(book, "./md_source/", "./tex_source/")
 
-	print "Adding includes"
-	base_modified = open("./tex_source/base.tex", 'w')
+	generate_base_tex(book, "base.tex", "./tex_source/base.tex")
+	
+	compile_latex("./tex_source/base.tex")
 
-	base_modified.write(add_includes(book, "base.tex"))
+	# print "Adding includes"
+	# base_modified = open("./tex_source/base.tex", 'w')
 
-	print "Compiling"
-	os.system("pdflatex ./tex_source/base.tex")
+	# base_modified.write(add_includes(book, "base.tex"))
+
+	# base_modified.close()
+
+	# print "Compiling"
+	# os.system("pdflatex -output-directory ./tex_source/ -interaction nonstopmode ./tex_source/base.tex")
+	# os.system("pdflatex -output-directory ./tex_source/ -interaction nonstopmode ./tex_source/base.tex")
 	
 if __name__ == '__main__':
 	
