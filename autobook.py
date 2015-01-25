@@ -28,7 +28,7 @@ def process_book(book, src_dir, out_dir):
 		for sub_chapter in chapter.sub_chapters:
 			md_path = src_dir + sub_chapter.md_name + ".md"
 			tex_path = out_dir + sub_chapter.md_name + ".tex"
-			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes -o \"%s\" \"%s\"" % (md_path, tex_path) 
+			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes -o \"%s\" \"%s\"" % (tex_path, md_path) 
 			os.system(pandoc_command)
 			
 			# Replace subsection -> subsubsection, then section -> subsection
