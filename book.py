@@ -130,5 +130,5 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-main()
-
+if __name__ == '__main__':
+    main()
