@@ -4,7 +4,7 @@ class Chapter(object):
 	"""docstring for Chapter"""
 	def __init__(self, chapter_name, book, windows=None):
 		super(Chapter, self).__init__()
-		self._chapter_name = chapter_name
+		self.chapter_name = chapter_name
 		self.sub_chapters = []
         self.windows = windows if windows is not None else platform.system() == "Windows"
 		book.append(self)
@@ -13,26 +13,24 @@ class Chapter(object):
 		for arg in args:
 			self.sub_chapters.append(arg)
 
-    @property
-    def chapter_name(self):
-        if self.windows:
-            return self._chapter_name.replace(":", "")
-        else:
-            return self._chapter_name
-
 class SubChapter(Chapter):
     def __init__(self, sub_chapter_name, md_name, windows=None):
-        self._sub_chapter_name = sub_chapter_name
-        self.md_name = md_name
+        self.sub_chapter_name = sub_chapter_name
+        self._md_name = md_name
         self.windows = windows if windows is not None else platform.system() == "Windows"
 
     @property
-    def sub_chapter_name(self):
+    def md_name(self):
         if self.windows:
-            return self._chapter_name.replace(":", "")
+            return self._md_name.replace(":", "")
         else:
-            return self._chapter_name
+            return self._md_name
 
+def add_includes(book, base_tex_path):
+    """Add the includes to the base tex file based on the tex files in base.tex."""
+    base_tex = open(base_tex_path, 'r')
+    base_tex_text = base_tex.read()
+    base_tex.close()
         
 def main():
 
