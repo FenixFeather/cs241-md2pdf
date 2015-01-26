@@ -32,14 +32,16 @@ class SubChapter(Chapter):
 			return self._md_name.replace(":", "")
 		else:
 			return self._md_name
+			
 def clone_wiki(url, destination_path):
 	clone_command = "git clone {0} {1}".format(url, destination_path)
 	os.system(clone_command)
 	files = glob.glob('SystemProgramming.wiki/*.md')
 	print files
 	for file in files:
-		print file,file.replace("-"," ") 
-		os.rename(file, file.replace("-"," "))
+		print file,file.replace("-"," ").replace("/", " ")
+		new_filename = file.replace("-", " ").replace("/", " ")
+		os.rename(file, new_filename)
 		
 def add_includes(book, base_tex_path):
 	"""Add the includes to the base tex file based on the tex files in base.tex."""
