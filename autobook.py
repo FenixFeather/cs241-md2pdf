@@ -6,6 +6,7 @@ import re
 import os, sys
 import glob
 import platform
+import argparse
 
 
 class Chapter(object):
@@ -31,14 +32,15 @@ class SubChapter(Chapter):
 			return self._md_name.replace(":", "")
 		else:
 			return self._md_name
-def clone_wiki(url):
-	clone_command = "git clone "+url
+def clone_wiki(url, destination_path):
+	clone_command = "git clone {0} {1}".format(url, destination_path)
 	os.system(clone_command)
 	files = glob.glob('SystemProgramming.wiki/*.md')
 	print files
 	for file in files:
 		print file,file.replace("-"," ") 
 		os.rename(file, file.replace("-"," "))
+		
 def add_includes(book, base_tex_path):
 	"""Add the includes to the base tex file based on the tex files in base.tex."""
 	base_tex = open(base_tex_path, 'r')
@@ -95,14 +97,15 @@ def generate_base_tex(book, base_template_path, destination_path):
 	base_modified.write(add_includes(book, base_template_path))
 
 	base_modified.close()
-	
-def main():
-	response = urllib2.urlopen("https://github.com/angrave/SystemProgramming/wiki")
+
+def scrape_book_structure(book_url):
+	"""Scrape and return the structure of the book from Angrave's Wiki."""
+	response = urllib2.urlopen(book_url)
 	html = response.read()
 	soup = BeautifulSoup(html)
 	table_of_contents = soup.find(id="wiki-body")
 	links = table_of_contents.find_all('a',class_="internal present")
-	clone_wiki("https://github.com/angrave/SystemProgramming.wiki.git")
+	
 	book = []
 	found = []
 	regex = re.compile("[\w\s]+,[\w\s]+:[\w\s]+")
@@ -127,12 +130,37 @@ def main():
 		for sub_chapter in chapter.sub_chapters:
 			print "\t{0}".format(sub_chapter.sub_chapter_name)
 
-	print "Processing book"
-	process_book(book, "SystemProgramming.wiki/", "tex_source/")
+	return book
 
-	generate_base_tex(book, "base.tex", "./tex_source/base.tex")
+def parse_arguments():
+	parser = argparse.ArgumentParser()
+
+	parser.add_argument("md_source",
+						help="directory where github wiki md files is located")
+	parser.add_argument("tex_source",
+						help="directory where tex and pdf final should be output")
+	parser.add_argument("-c", "--clone",
+						help="use this option if you want to clone the mds to md_source",
+						action="store_true")
+
+	return parser.parse_args()
 	
-	compile_latex("./tex_source/base.tex")
+	
+def main():
+	args = parse_arguments()
+	
+	book = scrape_book_structure("https://github.com/angrave/SystemProgramming/wiki")
+
+	if args.clone:
+		clone_wiki("https://github.com/angrave/SystemProgramming.wiki.git", args.md_source)
+
+	print "Processing book"
+	process_book(book, "{0}/".format(args.md_source), "{0}/".format(args.tex_source))
+
+	generate_base_tex(book, "base.tex", "{0}/base.tex".format(args.tex_source))
+	
+	compile_latex("{0}/base.tex".format(args.tex_source))
+	
 if __name__ == '__main__':
 	main()
 
