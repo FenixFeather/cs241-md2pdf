@@ -134,6 +134,9 @@ def scrape_book_structure(book_url):
 
 	return book
 
+def reorder_book(book):
+	return book
+
 def parse_arguments():
 	parser = argparse.ArgumentParser()
 
@@ -144,6 +147,9 @@ def parse_arguments():
 	parser.add_argument("-c", "--clone",
 						help="use this option if you want to clone the mds to md_source",
 						action="store_true")
+	parser.add_argument("-r", "--reorder",
+						help="use this option if you want to reorder the chapters in the book",
+						action="store_true")
 
 	return parser.parse_args()
 	
@@ -152,6 +158,9 @@ def main():
 	args = parse_arguments()
 	
 	book = scrape_book_structure("https://github.com/angrave/SystemProgramming/wiki")
+	
+	if args.reorder:
+		book = reorder_book(book)
 
 	if args.clone:
 		clone_wiki("https://github.com/angrave/SystemProgramming.wiki.git", args.md_source)
