@@ -63,7 +63,7 @@ def process_book(book, src_dir, out_dir):
 				print("[IO Error] Skipping %s\n" % (md_path))
 				continue
 
-			pandoc_command = "pandoc -f markdown_github -t latex -V links-as-notes \"%s\" -o  \"%s\"" % (md_path, tex_path) 
+			pandoc_command = "pandoc --listings -f markdown_github -t latex -V links-as-notes \"%s\" -o  \"%s\"" % (md_path, tex_path) 
 			os.system(pandoc_command)
 			
 			# Replace subsection -> subsubsection, then section -> subsection
