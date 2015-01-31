@@ -36,7 +36,7 @@ class SubChapter(Chapter):
 def clone_wiki(url, destination_path):
 	clone_command = "git clone {0} {1}".format(url, destination_path)
 	os.system(clone_command)
-	files = glob.glob('SystemProgramming.wiki/*.md')
+	files = glob.glob("{0}/*.md".format(destination_path))
 	print files
 	for file in files:
 		print file,file.replace("-"," ").replace("/", " ")
