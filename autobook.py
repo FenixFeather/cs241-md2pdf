@@ -52,14 +52,20 @@ def add_includes(book, base_tex_path):
 														 for subchapter in chapter.sub_chapters]
 														 for chapter in book], [])))
 
-def grab_image(url,tex_path):
-	pass
-
-def cleanse_tex(output, tex_path):
-	regex = re.compile("\includegraphics{(.*)}")
+def include_images(output, tex_path):
+	regex = re.compile("\\includegraphics{(.*)}")
 	urls = re.findall(regex, output)
 	print "FOUND THE FOLLOWING URLS:"
 	print urls
+	image_path = tex_path+"/images"
+	os.makedirs(image_path)
+	for url in urls:
+		filename = url.split("/")[-1]
+		filepath = image_path+"/"filename
+		# HTTP Request to get the image
+		urllib.urlretrieve(url, filepath)
+		output.replace(url,filepath)
+	return output
 
 def process_book(book, src_dir, out_dir):
 
@@ -91,7 +97,7 @@ def process_book(book, src_dir, out_dir):
 			output += "\section{{{0}}}\n".format(sub_chapter.sub_chapter_name)
 			output += tex_content
 
-			output = cleanse_tex(output, tex_path)
+			output = include_images(output, tex_path)
 			tex_file.write(output)
 			tex_file.close()
 
