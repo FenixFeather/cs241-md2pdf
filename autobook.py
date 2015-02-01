@@ -173,6 +173,15 @@ def parse_arguments():
 	return parser.parse_args()
 	
 	
+def generate_index(index_file_path, content):
+	with open(index_file_path) as index_file:
+	    for line in index_file:
+	    	index_tag = "\\index{" + line + "}"
+	    	content = content.replace(line, index_tag)
+
+	return content
+
+
 def main():
 	args = parse_arguments()
 	
