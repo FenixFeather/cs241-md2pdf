@@ -51,6 +51,16 @@ def add_includes(book, base_tex_path):
 	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{\"{0}\"}}}}".format(subchapter.md_name)
 														 for subchapter in chapter.sub_chapters]
 														 for chapter in book], [])))
+
+def grab_image(url,tex_path):
+	pass
+
+def cleanse_tex(output, tex_path):
+	regex = re.compile("\includegraphics{(.*)}")
+	urls = re.findall(regex, output)
+	print "FOUND THE FOLLOWING URLS:"
+	print urls
+
 def process_book(book, src_dir, out_dir):
 
 	for chapter in book:
@@ -81,6 +91,7 @@ def process_book(book, src_dir, out_dir):
 			output += "\section{{{0}}}\n".format(sub_chapter.sub_chapter_name)
 			output += tex_content
 
+			output = cleanse_tex(output, tex_path)
 			tex_file.write(output)
 			tex_file.close()
 
@@ -200,6 +211,7 @@ def main():
 	generate_base_tex(book, "base.tex", "{0}/base.tex".format(args.tex_source))
 	
 	compile_latex("{0}/base.tex".format(args.tex_source))
+
 	
 if __name__ == '__main__':
 	main()
