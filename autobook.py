@@ -135,7 +135,26 @@ def scrape_book_structure(book_url):
 	return book
 
 def reorder_book(book):
-	return book
+	print "This is the current ordering of the book"
+	for ii in range(len(book)):
+		chapter = book[ii]
+		print "\t Chapter "+str(ii)+":"+chapter.chapter_name
+	order = []
+	while True:
+		ordering = input("Please provide the ordering of the chapters as a comma seperated list (ex. 3,1,2)")
+		try:
+			order  = [int(position) for position in ordering.split(",")]
+		except ValueError:
+			print "Error in input!!!!"
+			continue
+		order = list(set(order))
+		if len(order) == len(book):
+			break
+		print "You have not specified the ordering for all chapters!!!"
+	reordered_book = []
+	for position in order:
+		reordered_book.append(book[position])
+	return reordered_book
 
 def parse_arguments():
 	parser = argparse.ArgumentParser()
