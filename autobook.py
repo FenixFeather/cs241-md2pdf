@@ -176,8 +176,9 @@ def parse_arguments():
 def generate_index(index_file_path, content):
 	with open(index_file_path) as index_file:
 	    for line in index_file:
+	    	term_regex = "\\b" + line + "\\b"
 	    	index_tag = "\\index{" + line + "}"
-	    	content = content.replace(line, index_tag)
+	    	content = re.sub(term_regex, index_tag, content)
 
 	return content
 
