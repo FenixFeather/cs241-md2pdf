@@ -105,7 +105,7 @@ def process_book(book, src_dir, out_dir):
 			output += "\section{{{0}}}\n".format(sub_chapter.sub_chapter_name)
 			output += tex_content
 
-			output = include_images(output, tex_path)
+			output = include_images(output, tex_path.split("/")[0])
 			tex_file.write(output)
 			tex_file.close()
 
