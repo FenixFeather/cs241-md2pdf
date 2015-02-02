@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from bs4 import BeautifulSoup,SoupStrainer
-import urllib2, urllib
+import urllib2
 import re
 import os, sys
 import glob
@@ -60,8 +60,6 @@ def grab_image(url,filepath):
 def include_images(output, tex_path):
 	regex = re.compile("\\includegraphics{(.*)}")
 	urls = re.findall(regex, output)
-	# print "FOUND THE FOLLOWING URLS:"
-	# print urls
 	image_path = tex_path+"/images"
 	try:
 		os.makedirs(image_path)
@@ -72,7 +70,10 @@ def include_images(output, tex_path):
 		filename = url.split("/")[-1]
 		filepath = image_path+"/"+filename
 		grab_image(url,filepath)
-		output = output.replace(url,filepath)
+		match = "\\includegraphics{{{0}}}".format(url)
+		replace = "\\noindent\\centerimg[width=\paperwidth]{{{0}}}".format(filepath)
+		output = output.replace(match,replace)
+
 	return output
 
 def process_book(book, src_dir, out_dir):

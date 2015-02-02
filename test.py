@@ -54,7 +54,7 @@ Here's another example, that shows Processes 1 and 2 acquiring resources
 1 and 2 while process 3 is waiting to acquire both resources. In this
 example there is no deadlock because there is no circular dependency.
 
-\includegraphics{{{0}/images/ResourceAllocationGraph-Ex1.png}}
+\\noindent\centerimg[width=\paperwidth]{{{0}/images/ResourceAllocationGraph-Ex1.png}}
 
 Todo: More complicated example""".format(self.tex_path))
 
