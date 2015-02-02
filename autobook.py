@@ -71,7 +71,7 @@ def include_images(output, tex_path):
 		filepath = image_path+"/"+filename
 		grab_image(url,filepath)
 		match = "\\includegraphics{{{0}}}".format(url)
-		replace = "\\noindent\\centerimg[width=\paperwidth]{{{0}}}".format(filepath)
+		replace = "\\includegraphics[width=\\textwidth]{{{0}}}".format(filepath)
 		output = output.replace(match,replace)
 
 	return output
