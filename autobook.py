@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from bs4 import BeautifulSoup,SoupStrainer
-import urllib2
+import urllib2, urllib
 import re
 import os, sys
 import glob
@@ -51,20 +51,28 @@ def add_includes(book, base_tex_path):
 	return base_tex_text.replace("%includes_here", "\n".join(sum([["\\include{{{{\"{0}\"}}}}".format(subchapter.md_name)
 														 for subchapter in chapter.sub_chapters]
 														 for chapter in book], [])))
+def grab_image(url,filepath):
+	r = urllib2.urlopen(url)
+	f = open(filepath, 'wb')
+	f.write(r.read())
+	f.close()
 
 def include_images(output, tex_path):
 	regex = re.compile("\\includegraphics{(.*)}")
 	urls = re.findall(regex, output)
-	print "FOUND THE FOLLOWING URLS:"
-	print urls
+	# print "FOUND THE FOLLOWING URLS:"
+	# print urls
 	image_path = tex_path+"/images"
-	os.makedirs(image_path)
+	try:
+		os.makedirs(image_path)
+	except OSError:
+		pass
+
 	for url in urls:
 		filename = url.split("/")[-1]
-		filepath = image_path+"/"filename
-		# HTTP Request to get the image
-		urllib.urlretrieve(url, filepath)
-		output.replace(url,filepath)
+		filepath = image_path+"/"+filename
+		grab_image(url,filepath)
+		output = output.replace(url,filepath)
 	return output
 
 def process_book(book, src_dir, out_dir):
