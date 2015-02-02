@@ -32,6 +32,11 @@ class SubChapter(Chapter):
 			return self._md_name.replace(":", "")
 		else:
 			return self._md_name
+
+	def latex_label(self):
+		"""Generate a string formatted for a latex label command."""
+		return self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-").translate(None, "!?.\n")
+		
 			
 def clone_wiki(url, destination_path):
 	clone_command = "git clone {0} {1}".format(url, destination_path)
@@ -71,7 +76,7 @@ def include_images(output, tex_path):
 		filepath = image_path+"/"+filename
 		grab_image(url,filepath)
 		match = "\\includegraphics{{{0}}}".format(url)
-		replace = "\\includegraphics[width=\\textwidth]{{{0}}}".format(filepath)
+		replace = "\\includegraphics[width=\\linewidth]{{{0}}}".format(filepath)
 		output = output.replace(match,replace)
 
 	return output
@@ -103,7 +108,8 @@ def process_book(book, src_dir, out_dir):
 				output += "\chapter{%s}\n" % chapter.chapter_name
 				is_first_section = False
 
-			output += "\section{{{0}}}\n".format(sub_chapter.sub_chapter_name)
+			output += "\section{{{0}}}\\label{{{1}}}\n".format(sub_chapter.sub_chapter_name,
+															   sub_chapter.latex_label())
 			output += tex_content
 
 			output = include_images(output, tex_path.split("/")[0])
@@ -201,10 +207,10 @@ def parse_arguments():
 	
 def generate_index(index_file_path, content):
 	with open(index_file_path) as index_file:
-	    for line in index_file:
-	    	term_regex = "\\b" + line + "\\b"
-	    	index_tag = "\\index{" + line + "}"
-	    	content = re.sub(term_regex, index_tag, content)
+		for line in index_file:
+			term_regex = "\\b" + line + "\\b"
+			index_tag = "\\index{" + line + "}"
+			content = re.sub(term_regex, index_tag, content)
 
 	return content
 
