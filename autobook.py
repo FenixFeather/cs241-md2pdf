@@ -35,7 +35,7 @@ class SubChapter(Chapter):
 
 	def latex_label(self):
 		"""Generate a string formatted for a latex label command."""
-		return self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-").translate(None, "!?.\n")
+		return self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-").translate({ord(c): None for c in "!?.\n"})
 		
 			
 def clone_wiki(url, destination_path):
