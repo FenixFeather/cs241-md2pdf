@@ -201,6 +201,9 @@ def parse_arguments():
 	parser.add_argument("-r", "--reorder",
 						help="use this option if you want to reorder the chapters in the book",
 						action="store_true")
+    parser.add_argument("-i", "--index",
+                        help="Specify a newline separated list of words to include in the index.",
+                        type=str)
 
 	return parser.parse_args()
 	
