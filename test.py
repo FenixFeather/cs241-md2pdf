@@ -83,7 +83,30 @@ C?"""]]
                          ["want-a-quick-introduction-to-c",
                           "crash-course-intro-to-c",
                           "how-do-you-write-a-complete-hello-world-program-in-c"])
-        
+
+class TestInternalLinkFunctions(unittest.TestCase):
+    def setUp(self):
+        """Set up two styles of internal link, raw link and link with description."""
+        self.decorated_internal_link = """\item
+  Then see the {[}{[}C Gotchas wiki page\textbar{}C Programming, Part 3:
+  Common Gotchas{]}{]}."""
+
+        self.raw_internal_link = """As already discussed in {[}{[}Synchronization, Part 3: Working with
+Mutexes And Semaphores{]}{]}, there are critical parts of our code that
+can only be executed by one thread at a time. We describe this
+requirement as `mutual exclusion'; only one thread (or process) may have
+access to the shared resource."""
+
+    def test_raw_internal_link(self):
+        self.assertEqual(unicode(autobook.convert_internal_links(self.raw_internal_link)), unicode("""As already discussed in \Fref{{sec:{0}}, there are critical parts of our code that
+can only be executed by one thread at a time. We describe this
+requirement as `mutual exclusion'; only one thread (or process) may have
+access to the shared resource.""".format(autobook.SubChapter("Working with Mutexes And Semaphores", "").latex_label())))
+
+    def test_decorated_internal_link(self):
+        self.assertEqual(unicode(autobook.convert_internal_links(self.decorated_internal_link)), unicode("""\item
+  Then see the C Gotchas wiki page (\fancyref{{sec:{0}}}).""".format(autobook.SubChapter("Common Gotchas".latex_label()))))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
