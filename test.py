@@ -5,6 +5,9 @@ import autobook
 import os, sys
 import unittest
 
+if sys.version_info < (2, 7):
+    print "EWS sucks."
+
 class TestRegexFunctions(unittest.TestCase):
     def setUp(self):
         self.latex_text = """\chapter{Deadlock}
@@ -31,11 +34,10 @@ example there is no deadlock because there is no circular dependency.
 Todo: More complicated example"""
         self.tex_path = "test_tex_path"
 
-
     def test_find_simple_url(self):
         # make sure the shuffled sequence does not lose any elements
         result = autobook.include_images(self.latex_text, self.tex_path)
-        self.assertEqual(result, """\chapter{{Deadlock}}
+        self.assertEqual(unicode(result), unicode("""\chapter{{Deadlock}}
 \section{{Resource Allocation Graph}}
 \subsection{{What is a Resource Allocation
 Graph?}}\label{{what-is-a-resource-allocation-graph}}
@@ -54,9 +56,9 @@ Here's another example, that shows Processes 1 and 2 acquiring resources
 1 and 2 while process 3 is waiting to acquire both resources. In this
 example there is no deadlock because there is no circular dependency.
 
-\\noindent\centerimg[width=\paperwidth]{{{0}/images/ResourceAllocationGraph-Ex1.png}}
+\\includegraphics[width=\linewidth]{{{0}/images/ResourceAllocationGraph-Ex1.png}}
 
-Todo: More complicated example""".format(self.tex_path))
+Todo: More complicated example""".format(self.tex_path)))
 
     # def test_choice(self):
     #     element = random.choice(self.seq)
@@ -68,9 +70,49 @@ Todo: More complicated example""".format(self.tex_path))
     #     for element in random.sample(self.seq, 5):
     #         self.assertTrue(element in self.seq)
 
+class TestChapterFunctions(unittest.TestCase):
+    def setUp(self):
+        self.latex_subchapters = [autobook.SubChapter(name, "") for name in
+                                  ["Want a quick introduction to C?",
+                                   "Crash course intro to C",
+                                  """How do you write a complete hello world program in
+C?"""]]
+
+    def test_subchapter_label(self):
+        self.assertEqual([subchapter.latex_label() for subchapter in self.latex_subchapters],
+                         ["want-a-quick-introduction-to-c",
+                          "crash-course-intro-to-c",
+                          "how-do-you-write-a-complete-hello-world-program-in-c"])
+
+class TestInternalLinkFunctions(unittest.TestCase):
+    def setUp(self):
+        """Set up two styles of internal link, raw link and link with description."""
+        self.decorated_internal_link = """\item
+  Then see the {[}{[}C Gotchas wiki page\textbar{}C Programming, Part 3:
+  Common Gotchas{]}{]}."""
+
+        self.raw_internal_link = """As already discussed in {[}{[}Synchronization, Part 3: Working with
+Mutexes And Semaphores{]}{]}, there are critical parts of our code that
+can only be executed by one thread at a time. We describe this
+requirement as `mutual exclusion'; only one thread (or process) may have
+access to the shared resource."""
+
+    def test_raw_internal_link(self):
+        self.assertEqual(unicode(autobook.convert_internal_links(self.raw_internal_link)), unicode("""As already discussed in \Fref{{sec:{0}}, there are critical parts of our code that
+can only be executed by one thread at a time. We describe this
+requirement as `mutual exclusion'; only one thread (or process) may have
+access to the shared resource.""".format(autobook.SubChapter("Working with Mutexes And Semaphores", "").latex_label())))
+
+    def test_decorated_internal_link(self):
+        self.assertEqual(unicode(autobook.convert_internal_links(self.decorated_internal_link)), unicode("""\item
+  Then see the C Gotchas wiki page (\fancyref{{sec:{0}}}).""".format(autobook.SubChapter("Common Gotchas".latex_label()))))
+
+
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestRegexFunctions)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main(verbosity=2)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestRegexFunctions)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestChapterFunctions)
+    # unittest.TextTestRunner(verbosity=2).run(suite)
 
 # def main():
 
