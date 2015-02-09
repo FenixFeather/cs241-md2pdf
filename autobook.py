@@ -35,7 +35,13 @@ class SubChapter(Chapter):
 
 	def latex_label(self):
 		"""Generate a string formatted for a latex label command."""
-		return self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-").translate(None, "!?.\n")#{ord(c): None for c in "!?.\n"})
+		result = ""
+		if sys.version_info[2] < 8:
+			result = self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-").translate(None, "!?.\n")#{ord(c): None for c in "!?.\n"})
+		else:
+			result =  unicode(self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-")).translate({ord(c): None for c in "!?.\n"})
+
+		return re.sub(r"(-)\1+", r"\1", result)
 		
 			
 def clone_wiki(url, destination_path):
@@ -108,12 +114,12 @@ def process_book(book, src_dir, out_dir):
 				output += "\chapter{%s}\n" % chapter.chapter_name
 				is_first_section = False
 
-			output += "\section{{{0}}}\\label{{{1}}}\n".format(sub_chapter.sub_chapter_name,
+			output += "\section{{{0}}}\\label{{sec:{1}}}\n".format(sub_chapter.sub_chapter_name,
 															   sub_chapter.latex_label())
 			output += tex_content
 
 			output = include_images(output, tex_path.split("/")[0])
-			tex_file.write(output)
+			tex_file.write(convert_internal_links(output))
 			tex_file.close()
 
 
@@ -188,6 +194,23 @@ def reorder_book(book):
 		reordered_book.append(book[position])
 	return reordered_book
 
+def convert_internal_links(content):
+	"""Convert internal links to fancy refs."""
+	# regex = re.compile(r"\{\[\}\{\[\}(.*?)(\\textbar)*?(.*?)\{\]\}\{\]\}")
+	# re.DOTALL = True
+	regex = re.compile(r"\{\[\}\{\[\}(.*?)\{\]\}\{\]\}", re.DOTALL)
+	# print re.search(regex, content)
+	result = content
+	for internal_link in regex.finditer(content):
+		parts = internal_link.group(1).split("\\textbar")
+		label = SubChapter(parts[-1].split(":")[1].strip(), "").latex_label()
+		if len(parts) == 1:
+			result = result.replace(internal_link.group(0), "\\Fref{{sec:{0}}}".format(label))
+		else:
+			result = result.replace(internal_link.group(0), "{0} on page \\pageref{{sec:{1}}}".format(parts[0],label))
+
+	return result
+		
 def parse_arguments():
 	parser = argparse.ArgumentParser()
 
@@ -201,9 +224,9 @@ def parse_arguments():
 	parser.add_argument("-r", "--reorder",
 						help="use this option if you want to reorder the chapters in the book",
 						action="store_true")
-    parser.add_argument("-i", "--index",
-                        help="Specify a newline separated list of words to include in the index.",
-                        type=str)
+	parser.add_argument("-i", "--index",
+						help="Specify a newline separated list of words to include in the index.",
+						type=str)
 
 	return parser.parse_args()
 	
