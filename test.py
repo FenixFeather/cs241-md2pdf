@@ -107,6 +107,22 @@ access to the shared resource.""".format(autobook.SubChapter("Working with Mutex
         self.assertEqual(unicode(autobook.convert_internal_links(self.decorated_internal_link)), unicode("""\item
   Then see the C Gotchas wiki page on page \pageref{{sec:{0}}}.""".format(autobook.SubChapter("Common Gotchas", "").latex_label())))
 
+class TestIndexFunctions(unittest.TestCase):
+    def setUp(self):
+        """Set up an index file and some book test"""
+        with open("temp.txt", 'w') as index_file:
+            index_file.write("mutex\nsemaphore\nthread\nsynchronization")
+        self.book_text = """As already discussed in Synchronization, Part 3: Working with
+Mutexes And Semaphores, there are critical parts of our code that
+can only be executed by one thread at a time. We describe this
+requirement as `mutual exclusion'; only one thread (or process) may have
+access to the shared resource."""
+
+    def test_basic_indexing(self):
+        self.assertEqual(unicode(autobook.generate_index("temp.txt", "I like thread.")), unicode("I like \\index{thread}."))
+
+    def case_insensitive_indexing(self):
+        self.assertEqual(unicode(autobook.generate_index("temp.txt", "Thread is cool.")), unicode("\\index{Thread} is cool."))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -87,7 +87,7 @@ def include_images(output, tex_path):
 
 	return output
 
-def process_book(book, src_dir, out_dir):
+def process_book(book, src_dir, out_dir, args):
 
 	for chapter in book:
 		is_first_section = True
@@ -119,6 +119,10 @@ def process_book(book, src_dir, out_dir):
 			output += tex_content
 
 			output = include_images(output, tex_path.split("/")[0])
+			
+			if args.index:
+				output = generate_index(args.index, output)
+				
 			tex_file.write(convert_internal_links(output))
 			tex_file.close()
 
@@ -253,7 +257,7 @@ def main():
 		clone_wiki("https://github.com/angrave/SystemProgramming.wiki.git", args.md_source)
 
 	print "Processing book"
-	process_book(book, "{0}/".format(args.md_source), "{0}/".format(args.tex_source))
+	process_book(book, "{0}/".format(args.md_source), "{0}/".format(args.tex_source), args)
 
 	generate_base_tex(book, "base.tex", "{0}/base.tex".format(args.tex_source))
 	
