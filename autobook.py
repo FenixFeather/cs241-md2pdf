@@ -236,17 +236,29 @@ def parse_arguments():
 
 
 def generate_index(index_file_path, content):
-	with open(index_file_path) as index_file:
-		for line in index_file:
-			line = line.strip()
-			print "[{0}]".format(line)
-			raw_regex = '\\b{0}\\b'.format(line)
-			print raw_regex
-			term_regex = re.compile(raw_regex)
-			index_tag = "\\index{" + line + "}"
-			content = re.sub(term_regex, lambda match_obj: "{}{}".format(match_obj.group(0),index_tag), content)
-
-	return content
+    # this array will hold the exact casing of every case insentive match
+    case_insensitive_matches = {}
+    # going to find all occurences of index matches
+    with open(index_file_path) as index_file:
+        for line in index_file:
+            line = line.strip()
+            print "[{0}]".format(line)
+            raw_regex = '\\b{0}\\b'.format(line)
+            print raw_regex
+            compiled_regex = re.compile(raw_regex, re.IGNORECASE)
+            matches = re.findall(compiled_regex, content)
+            print matches
+            case_insensitive_matches[line] = matches
+    # now that you have all the case insentive matches
+    # replace the text with strict casing
+    for key in case_insensitive_matches:
+        for match in case_insensitive_matches[key]:
+            print match
+            raw_regex = '\\b{0}\\b'.format(match)
+            compiled_regex = re.compile(raw_regex)
+            index_tag = "\\index{" + key + "}"
+            content = re.sub(compiled_regex, lambda match_obj: "{}{}".format(match_obj.group(0),index_tag), content)
+    return content
 
 
 def main():
