@@ -119,10 +119,10 @@ requirement as `mutual exclusion'; only one thread (or process) may have
 access to the shared resource."""
 
     def test_basic_indexing(self):
-        self.assertEqual(unicode(autobook.generate_index("temp.txt", "I like thread.")), unicode("I like \\index{thread}."))
+        self.assertEqual(unicode(autobook.generate_index("temp.txt", "I like thread.")), unicode("I like thread\\index{thread}."))
 
     def test_case_insensitive_indexing(self):
-        self.assertEqual(unicode(autobook.generate_index("temp.txt", "Thread is cool.")), unicode("\\index{Thread} is cool."))
+        self.assertEqual(unicode(autobook.generate_index("temp.txt", "Thread is cool.")), unicode("Thread\\index{thread} is cool."))
 
     def tearDown(self):
         os.remove("temp.txt")

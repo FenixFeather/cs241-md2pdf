@@ -244,7 +244,7 @@ def generate_index(index_file_path, content):
 			print raw_regex
 			term_regex = re.compile(raw_regex)
 			index_tag = "\\index{" + line + "}"
-			content = re.sub(term_regex, index_tag, content)
+			content = re.sub(term_regex, lambda match_obj: "{}{}".format(match_obj.group(0),index_tag), content)
 
 	return content
 
