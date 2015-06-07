@@ -124,6 +124,9 @@ access to the shared resource."""
     def case_insensitive_indexing(self):
         self.assertEqual(unicode(autobook.generate_index("temp.txt", "Thread is cool.")), unicode("\\index{Thread} is cool."))
 
+    def tearDown(self):
+        os.remove("temp.txt")
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestRegexFunctions)
