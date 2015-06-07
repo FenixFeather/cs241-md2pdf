@@ -121,7 +121,7 @@ access to the shared resource."""
     def test_basic_indexing(self):
         self.assertEqual(unicode(autobook.generate_index("temp.txt", "I like thread.")), unicode("I like \\index{thread}."))
 
-    def case_insensitive_indexing(self):
+    def test_case_insensitive_indexing(self):
         self.assertEqual(unicode(autobook.generate_index("temp.txt", "Thread is cool.")), unicode("\\index{Thread} is cool."))
 
     def tearDown(self):
