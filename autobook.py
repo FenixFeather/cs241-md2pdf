@@ -25,7 +25,7 @@ class SubChapter(Chapter):
 		self.sub_chapter_name = sub_chapter_name
 		self._md_name = md_name
 		self.windows = windows if windows is not None else platform.system() == "Windows"
-		
+
 	@property
 	def md_name(self):
 		if self.windows:
@@ -42,8 +42,8 @@ class SubChapter(Chapter):
 			result =  unicode(self.sub_chapter_name.lower().replace(" ", "-").replace("\n","-")).translate({ord(c): None for c in "!?.\n"})
 
 		return re.sub(r"(-)\1+", r"\1", result)
-		
-			
+
+
 def clone_wiki(url, destination_path):
 	clone_command = "git clone {0} {1}".format(url, destination_path)
 	os.system(clone_command)
@@ -53,7 +53,7 @@ def clone_wiki(url, destination_path):
 		print file,file.replace("-"," ").replace("/", " ")
 		new_filename = file.replace("-", " ").replace("/", " ")
 		os.rename(file, new_filename)
-		
+
 def add_includes(book, base_tex_path):
 	"""Add the includes to the base tex file based on the tex files in base.tex."""
 	base_tex = open(base_tex_path, 'r')
@@ -99,9 +99,9 @@ def process_book(book, src_dir, out_dir, args):
 				print("[IO Error] Skipping %s\n" % (md_path))
 				continue
 
-			pandoc_command = "pandoc --listings -f markdown_github -t latex -V links-as-notes \"%s\" -o  \"%s\"" % (md_path, tex_path) 
+			pandoc_command = "pandoc --listings -f markdown_github -t latex -V links-as-notes \"%s\" -o  \"%s\"" % (md_path, tex_path)
 			os.system(pandoc_command)
-			
+
 			# Replace subsection -> subsubsection, then section -> subsection
 			tex_file = open(tex_path, "r+")
 			tex_content = tex_file.read()
@@ -119,10 +119,10 @@ def process_book(book, src_dir, out_dir, args):
 			output += tex_content
 
 			output = include_images(output, tex_path.split("/")[0])
-			
+
 			if args.index:
 				output = generate_index(args.index, output)
-				
+
 			tex_file.write(convert_internal_links(output))
 			tex_file.close()
 
@@ -149,7 +149,7 @@ def scrape_book_structure(book_url):
 	soup = BeautifulSoup(html)
 	table_of_contents = soup.find(id="wiki-body")
 	links = table_of_contents.find_all('a',class_="internal present")
-	
+
 	book = []
 	found = []
 	regex = re.compile("[\w\s]+,[\w\s]+:[\w\s]+")
@@ -189,7 +189,7 @@ def reorder_book(book):
 		except ValueError:
 			print "Error in input!!!!"
 			continue
-		
+
 		if len(order) == len(book):
 			break
 		print "You have not specified the ordering for all chapters!!!"
@@ -214,7 +214,7 @@ def convert_internal_links(content):
 			result = result.replace(internal_link.group(0), "{0} on page \\pageref{{sec:{1}}}".format(parts[0],label))
 
 	return result
-		
+
 def parse_arguments():
 	parser = argparse.ArgumentParser()
 
@@ -233,12 +233,16 @@ def parse_arguments():
 						type=str)
 
 	return parser.parse_args()
-	
-	
+
+
 def generate_index(index_file_path, content):
 	with open(index_file_path) as index_file:
 		for line in index_file:
-			term_regex = "\\b" + line + "\\b"
+			line = line.strip()
+			print "[{0}]".format(line)
+			raw_regex = '\\b{0}\\b'.format(line)
+			print raw_regex
+			term_regex = re.compile(raw_regex)
 			index_tag = "\\index{" + line + "}"
 			content = re.sub(term_regex, index_tag, content)
 
@@ -247,9 +251,9 @@ def generate_index(index_file_path, content):
 
 def main():
 	args = parse_arguments()
-	
+
 	book = scrape_book_structure("https://github.com/angrave/SystemProgramming/wiki")
-	
+
 	if args.reorder:
 		book = reorder_book(book)
 
@@ -260,10 +264,9 @@ def main():
 	process_book(book, "{0}/".format(args.md_source), "{0}/".format(args.tex_source), args)
 
 	generate_base_tex(book, "base.tex", "{0}/base.tex".format(args.tex_source))
-	
+
 	compile_latex("{0}/base.tex".format(args.tex_source))
 
-	
+
 if __name__ == '__main__':
 	main()
-
